@@ -1,0 +1,299 @@
+<!DOCTYPE html> 
+<html>
+<head>
+  <title>Caja - Bazar Bellita</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI';
+      display: flex;
+      background: #f5f6fa;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e272e;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .sidebar a {
+      display: block;
+      color: white;
+      padding: 10px;
+      text-decoration: none;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+
+    .sidebar a:hover {
+      background: #485460;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: #ff3f34;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+    }
+
+    .contenido {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+
+    input {
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      background: #ff3f34;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #e84118;
+    }
+
+    .saldo {
+      font-size: 22px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+
+<div class="sidebar">
+  <h2>FIVI</h2>
+  <a href="index.html">💰 Venta</a>
+  <a href="bodega.html">📦 Bodega</a>
+  <a href="deuda.html">💸 Deudas</a>
+  <a href="analisis.html">📊 Análisis</a>
+  <a href="caja.html">💵 Caja</a>
+    <a href="cliente.html">👤 Clientes</a>
+</div>
+
+<div class="main">
+
+  <div class="header">🏦 Control de Caja</div>
+
+  <div class="contenido">
+
+    <!-- ABRIR -->
+    <div class="card">
+      <h3>🟢 Abrir Caja</h3>
+      <input id="monto" type="number" placeholder="Monto inicial">
+      <button onclick="abrir()">Abrir</button>
+    </div>
+
+    <!-- ESTADO -->
+    <div class="card">
+      <h3>📊 Estado</h3>
+      <p>Apertura: $<span id="apertura">0</span></p>
+      <p>Ingresos: $<span id="ingresos">0</span></p>
+      <p>Gastos: $<span id="gastos">0</span></p>
+      <p class="saldo">Saldo: $<span id="saldo">0</span></p>
+      <button onclick="cargar()">Actualizar</button>
+    </div>
+
+    <!-- GASTO -->
+    <div class="card">
+      <h3>💸 Gasto</h3>
+      <input id="gasto" type="number" placeholder="Monto">
+      <button onclick="registrarGasto()">Registrar</button>
+    </div>
+
+    <!-- CERRAR -->
+    <div class="card">
+      <h3>🔴 Cerrar Caja</h3>
+      <button onclick="cerrar()">Cerrar Caja</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+
+// ================== ABRIR ==================
+async function abrir(){
+
+  let monto = Number(document.getElementById('monto').value);
+  if(!monto || monto <= 0) return alert("Monto inválido");
+
+  let res = await fetch('http://localhost:3000/caja/abrir',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ monto })
+  });
+
+  let data = await res.json();
+
+  alert(data.error || "Caja abierta ✔");
+
+  document.getElementById('monto').value = "";
+
+  cargar();
+}
+
+// ================== CARGAR ==================
+async function cargar(){
+
+  let res = await fetch('http://localhost:3000/caja');
+  let data = await res.json();
+
+  if(!data){
+    document.getElementById('apertura').innerText = 0;
+    document.getElementById('ingresos').innerText = 0;
+    document.getElementById('gastos').innerText = 0;
+    document.getElementById('saldo').innerText = 0;
+    return;
+  }
+
+  document.getElementById('apertura').innerText = data.apertura || 0;
+  document.getElementById('ingresos').innerText = data.ingresos || 0;
+  document.getElementById('gastos').innerText = data.gastos || 0;
+  document.getElementById('saldo').innerText = data.saldo || 0;
+}
+
+// ================== GASTO ==================
+async function registrarGasto(){
+
+  let monto = Number(document.getElementById('gasto').value);
+  if(!monto || monto <= 0) return alert("Monto inválido");
+
+  let res = await fetch('http://localhost:3000/caja/gasto',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ monto })
+  });
+
+  let data = await res.json();
+
+  alert(data.error || "Gasto registrado ✔");
+
+  document.getElementById('gasto').value = "";
+
+  cargar();
+}
+
+// ================== FACTURA ==================
+function imprimirFactura(data){
+
+  // 🔥 abrir inmediatamente (esto evita bloqueo)
+  let ventana = window.open("", "_blank", "width=400,height=600");
+
+  if (!ventana) {
+    alert("❌ Activa ventanas emergentes en el navegador");
+    return;
+  }
+
+  ventana.document.write(`
+    <html>
+    <head>
+      <title>Cierre Caja</title>
+      <style>
+        body { font-family: Arial; padding: 20px; }
+        h2 { text-align: center; }
+        .linea { border-top: 1px dashed #000; margin: 10px 0; }
+      </style>
+    </head>
+    <body>
+
+      <h2>📄 CIERRE DE CAJA</h2>
+      <div class="linea"></div>
+
+      <p>Apertura: $${data.apertura}</p>
+      <p>Ingresos: $${data.ingresos}</p>
+      <p>Gastos: $${data.gastos}</p>
+
+      <div class="linea"></div>
+
+      <p>Esperado: $${data.esperado}</p>
+      <p>Real: $${data.real}</p>
+      <p>Diferencia: $${data.diferencia}</p>
+
+      <div class="linea"></div>
+
+      <p>${new Date().toLocaleString()}</p>
+
+      <script>
+        window.onload = function(){
+          window.print();
+        }
+      <\/script>
+
+    </body>
+    </html>
+  `);
+
+  ventana.document.close();
+}
+// ================== CERRAR ==================
+async function cerrar(){
+
+  let montoReal = prompt("¿Cuánto dinero hay en caja?");
+
+  if(!montoReal || isNaN(montoReal)){
+    return alert("Monto inválido");
+  }
+
+  let res = await fetch('http://localhost:3000/caja/cerrar',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ montoReal })
+  });
+
+  let data = await res.json();
+
+  if(data.error){
+    alert(data.error);
+  } else {
+    imprimirFactura(data);
+    alert("Caja cerrada ✔");
+  }
+
+  document.getElementById('monto').value = "";
+  document.getElementById('gasto').value = "";
+
+  cargar();
+}
+
+cargar();
+
+</script>
+
+</body>
+</html>

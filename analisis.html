@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Análisis de Ventas</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      display: flex;
+      background: #f4f4f4;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e272e;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      color: white;
+      padding: 10px;
+      text-decoration: none;
+      margin-top: 10px;
+      border-radius: 6px;
+    }
+
+    .sidebar a:hover {
+      background: #485460;
+    }
+
+    .main {
+      flex: 1;
+    }
+
+    .header {
+      background: #ff3f34;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      background: #ff3f34;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #e84118;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>FIVI</h2>
+  <a href="index.html">💰 Venta</a>
+  <a href="bodega.html">📦 Bodega</a>
+  <a href="deuda.html">💸 Deudas</a>
+  <a href="analisis.html">📊 Análisis</a>
+  <a href="caja.html">💵 Caja</a>
+  <a href="cliente.html">👤 Clientes</a>
+</div>
+
+<div class="main">
+
+  <div class="header">📊 Análisis de Ventas</div>
+
+  <div class="container">
+
+    <div class="card">
+      <h2>Total vendido</h2>
+      <h1 id="total">$0</h1>
+    </div>
+
+    <div class="card">
+      <h2>Historial de ventas</h2>
+      <button onclick="borrarHistorial()">🗑 Borrar historial</button>
+      <ul id="historial"></ul>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+async function cargar() {
+
+  try {
+
+    const res = await fetch('http://localhost:3000/analisis');
+    const data = await res.json();
+
+    // ================= TOTAL =================
+    document.getElementById('total').innerText =
+      "$" + (data.totalGeneral || 0).toFixed(2);
+
+    // ================= HISTORIAL =================
+    let ul = document.getElementById('historial');
+    ul.innerHTML = "";
+
+    if (!data.ventas || data.ventas.length === 0) {
+      ul.innerHTML = "<li>No hay ventas registradas</li>";
+      return;
+    }
+
+    // Agrupar por fecha
+    let agrupado = {};
+
+    data.ventas.forEach(v => {
+      let fecha = new Date(v.fecha).toLocaleDateString();
+
+      if (!agrupado[fecha]) agrupado[fecha] = [];
+      agrupado[fecha].push(v);
+    });
+
+    for (let fecha in agrupado) {
+
+      ul.innerHTML += `<h3>📅 ${fecha}</h3>`;
+
+      agrupado[fecha].forEach(v => {
+        ul.innerHTML += `<li>${v.cliente || "Sin nombre"} - $${v.total || 0}</li>`;
+      });
+    }
+
+  } catch (err) {
+    console.log("Error cargando análisis:", err);
+  }
+}
+
+// ================= BORRAR HISTORIAL =================
+async function borrarHistorial() {
+
+  let pass = prompt("🔐 Ingresa contraseña:");
+
+  if (pass !== "bellita123") {
+    alert("❌ Incorrecta");
+    return;
+  }
+
+  let confirmar = confirm("⚠️ ¿Seguro que quieres borrar TODO?");
+  if (!confirmar) return;
+
+  await fetch('http://localhost:3000/ventas', {
+    method: 'DELETE'
+  });
+
+  alert("✅ Historial borrado");
+  cargar();
+}
+
+cargar();
+
+</script>
+
+</body>
+</html>

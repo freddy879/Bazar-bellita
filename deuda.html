@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Deudas - Bazar Bellita</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI';
+      display: flex;
+      background: #f5f6fa;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e272e;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 10px;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .sidebar a:hover {
+      background: #485460;
+    }
+
+    .main { flex: 1; }
+
+    .header {
+      background: #ff3f34;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+    }
+
+    .contenido { padding: 20px; }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      background: #ff3f34;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #e84118; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+
+<div class="sidebar">
+  <h2>FIVI</h2>
+  <a href="index.html">💰 Venta</a>
+  <a href="bodega.html">📦 Bodega</a>
+  <a href="deuda.html">💸 Deudas</a>
+  <a href="analisis.html">📊 Análisis</a>
+  <a href="caja.html">💵 Caja</a>
+    <a href="cliente.html">👤 Clientes</a>
+</div>
+
+<div class="main">
+
+  <div class="header">💸 Deudas - Bazar Bellita</div>
+
+  <div class="contenido">
+
+    <!-- BUSCAR -->
+    <div class="card">
+      <input id="buscar" placeholder="Buscar por nombre o cédula">
+      <button onclick="buscarCliente()">Buscar</button>
+    </div>
+
+    <!-- NUEVA DEUDA -->
+    <div class="card">
+      <h3>➕ Nueva Deuda</h3>
+
+      <input id="nombre" placeholder="Nombre">
+      <input id="apellido" placeholder="Apellido"><br>
+
+      <input id="cedula" placeholder="Cédula">
+      <input id="direccion" placeholder="Dirección"><br>
+
+      <input id="monto" placeholder="Monto">
+      <input id="meses" placeholder="Meses"><br>
+
+      <button onclick="agregar()">Guardar</button>
+    </div>
+
+    <!-- TABLA -->
+    <div class="card">
+      <h3>📋 Deudas</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Cédula</th>
+            <th>Total</th>
+            <th>Pagado</th>
+            <th>Restante</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+let deudas = [];
+
+// ================= CARGAR =================
+async function cargar() {
+  const res = await fetch('http://localhost:3000/deudas');
+  deudas = await res.json();
+  mostrar(deudas);
+}
+
+// ================= AGREGAR =================
+async function agregar() {
+
+  let total = parseFloat(monto.value);
+  if (!total) return alert("Monto inválido");
+
+  const deuda = {
+    cliente: nombre.value + " " + apellido.value,
+    cedula: cedula.value || "SIN CÉDULA",
+    direccion: direccion.value || "",
+    total,
+    meses: parseInt(meses.value) || 1,
+    pagado: 0
+  };
+
+  await fetch('http://localhost:3000/deudas', {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(deuda)
+  });
+
+  limpiar();
+  cargar();
+}
+
+// ================= MOSTRAR =================
+function mostrar(lista){
+
+  let tabla = document.getElementById("tabla");
+  tabla.innerHTML = "";
+
+  lista.forEach(d => {
+
+    let restante = d.total - (d.pagado || 0);
+    let estado = restante <= 0 ? "Pagado ✅" : "Pendiente";
+
+    tabla.innerHTML += `
+      <tr>
+        <td>${d.cliente}</td>
+        <td>${d.cedula}</td>
+        <td>$${d.total}</td>
+        <td>$${d.pagado || 0}</td>
+        <td>$${restante}</td>
+        <td>${estado}</td>
+        <td>
+          <input id="abono${d._id}" placeholder="Abono" style="width:80px">
+          <button onclick="abonar('${d._id}')">💰</button>
+          <button onclick="eliminar('${d._id}')">🗑</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// ================= ABONAR =================
+async function abonar(id){
+
+  let input = document.getElementById(`abono${id}`);
+  let monto = parseFloat(input.value);
+
+  if(!monto) return alert("Monto inválido");
+
+  const res = await fetch('http://localhost:3000/deudas/pagar', {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ id, monto })
+  });
+
+  const data = await res.json();
+
+  input.value = "";
+  await cargar();
+
+  // ================= HISTORIAL =================
+  let historial = "";
+
+  if (data.pagos && data.pagos.length > 0) {
+    historial = data.pagos.map((p, i) => {
+      return `
+        <tr>
+          <td>${i + 1}</td>
+          <td>$${p.monto}</td>
+          <td>${new Date(p.fecha).toLocaleString()}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  let recibo = `
+    <div style="font-family:Arial;padding:20px">
+      <h2>🧾 BAZAR BELLITA</h2>
+      <hr>
+
+      <p><b>Cliente:</b> ${data.cliente}</p>
+      <p><b>Total deuda:</b> $${data.total}</p>
+      <p><b>Restante:</b> $${data.restante}</p>
+
+      <hr>
+
+      <h3>📜 Historial de pagos</h3>
+
+      <table border="1" width="100%" style="border-collapse:collapse;text-align:center">
+        <tr>
+          <th>#</th>
+          <th>Monto</th>
+          <th>Fecha</th>
+        </tr>
+
+        ${historial || "<tr><td colspan='3'>Sin pagos aún</td></tr>"}
+      </table>
+
+      <hr>
+
+      <p><b>Último pago:</b> $${data.monto}</p>
+      <p><b>Fecha:</b> ${new Date().toLocaleString()}</p>
+
+      <center>✔ Pago registrado</center>
+    </div>
+  `;
+
+  let w = window.open('', '', 'width=400,height=600');
+  w.document.write(recibo);
+  w.document.close();
+  w.print();
+}
+
+// ================= ELIMINAR =================
+async function eliminar(id){
+
+  let pass = prompt("Contraseña");
+
+  if(pass !== "bellita123"){
+    return alert("Incorrecta");
+  }
+
+  await fetch(`http://localhost:3000/deudas/${id}`, {
+    method: "DELETE"
+  });
+
+  cargar();
+}
+
+// ================= BUSCAR =================
+function buscarCliente(){
+
+  let t = buscar.value.toLowerCase();
+
+  let f = deudas.filter(d =>
+    d.cliente.toLowerCase().includes(t) ||
+    d.cedula.includes(t)
+  );
+
+  mostrar(f);
+}
+
+// ================= LIMPIAR =================
+function limpiar(){
+  nombre.value="";
+  apellido.value="";
+  cedula.value="";
+  direccion.value="";
+  monto.value="";
+  meses.value="";
+}
+
+cargar();
+
+</script>
+
+</body>
+</html>

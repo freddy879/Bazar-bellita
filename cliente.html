@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clientes - Bazar Bellita</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI';
+      display: flex;
+      background: #f5f6fa;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e272e;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      color: white;
+      padding: 10px;
+      text-decoration: none;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+
+    .sidebar a:hover {
+      background: #485460;
+    }
+
+    .main {
+      flex: 1;
+    }
+
+    .header {
+      background: #ff3f34;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 200px;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      background: #ff3f34;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #e84118;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+
+<div class="sidebar">
+  <h2>FIVI</h2>
+  <a href="index.html">💰 Venta</a>
+  <a href="bodega.html">📦 Bodega</a>
+  <a href="deuda.html">💸 Deudas</a>
+  <a href="analisis.html">📊 Análisis</a>
+  <a href="caja.html">💵 Caja</a>
+    <a href="cliente.html">👤 Clientes</a>
+</div>
+
+
+<div class="main">
+
+  <div class="header">👤 Clientes</div>
+
+  <div class="container">
+
+    <div class="card">
+      <h3>➕ Nuevo Cliente</h3>
+
+      <input id="nombre" placeholder="Nombre">
+      <input id="cedula" placeholder="Cédula">
+      <input id="telefono" placeholder="Teléfono">
+
+      <button onclick="guardar()">Guardar</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Lista de Clientes</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Cédula</th>
+            <th>Teléfono</th>
+          </tr>
+        </thead>
+
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<tbody id="tabla"></tbody>
+
+<script>
+
+async function cargar(){
+
+  const res = await fetch('http://localhost:3000/clientes');
+  const data = await res.json();
+
+  let tabla = document.getElementById("tabla");
+  tabla.innerHTML = "";
+
+  data.forEach(c => {
+    tabla.innerHTML += `
+      <tr>
+        <td>${c.nombre}</td>
+        <td>${c.cedula}</td>
+        <td>${c.telefono || ""}</td>
+        <td>
+          <button onclick="eliminar('${c._id}')">🗑 Eliminar</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// ================= GUARDAR =================
+async function guardar(){
+
+  if(!nombre.value || !cedula.value){
+    return alert("Completa nombre y cédula");
+  }
+
+  await fetch('http://localhost:3000/clientes', {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      nombre: nombre.value,
+      cedula: cedula.value,
+      telefono: telefono.value
+    })
+  });
+
+  nombre.value = "";
+  cedula.value = "";
+  telefono.value = "";
+
+  cargar();
+}
+
+// ================= ELIMINAR =================
+async function eliminar(id){
+
+  let pass = prompt("🔐 Contraseña para eliminar:");
+
+  if(pass !== "bellita123"){
+    return alert("❌ Incorrecto");
+  }
+
+  let confirmar = confirm("⚠️ ¿Seguro que quieres eliminar este cliente?");
+  if(!confirmar) return;
+
+  await fetch(`http://localhost:3000/clientes/${id}`, {
+    method: "DELETE"
+  });
+
+  cargar();
+}
+
+cargar();
+
+</script>
+
+</body>
+</html>

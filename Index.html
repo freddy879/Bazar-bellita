@@ -1,0 +1,359 @@
+<!DOCTYPE html> 
+<html>
+<head>
+  <title>Ventas - Bazar Bellita</title>
+
+  <style>
+    body { margin: 0; font-family: 'Segoe UI'; display: flex; background: #f5f6fa; }
+    .sidebar { width: 220px; background: #1e272e; color: white; height: 100vh; padding: 20px; }
+    .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; margin-top: 10px; border-radius: 8px; }
+    .sidebar a:hover { background: #485460; }
+    .main { flex: 1; }
+    .header { background: #ff3f34; color: white; padding: 15px; font-size: 20px; }
+    .contenido { padding: 20px; display: flex; gap: 20px; }
+    .card { background: white; padding: 15px; border-radius: 12px; flex: 1; }
+
+    input { padding: 8px; margin: 5px; width: 90%; }
+    button { padding: 8px; border: none; background: #ff3f34; color: white; border-radius: 6px; cursor: pointer; }
+    ul { list-style: none; padding: 0; }
+
+    .overlay {
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background: rgba(0,0,0,0.6);
+      display:none;
+      justify-content:center;
+      align-items:center;
+    }
+
+    .factura {
+      background:white;
+      padding:20px;
+      width:400px;
+      border-radius:10px;
+    }
+
+    .pagoBtn {
+      display:flex;
+      gap:10px;
+      margin:5px;
+    }
+
+    .pagoBtn button {
+      flex:1;
+    }
+
+    .activo {
+      background:#2ed573 !important;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>FIVI</h2>
+  <a href="index.html">💰 Venta</a>
+  <a href="bodega.html">📦 Bodega</a>
+  <a href="deuda.html">💸 Deudas</a>
+  <a href="analisis.html">📊 Análisis</a>
+  <a href="caja.html">💵 Caja</a>
+    <a href="cliente.html">👤 Clientes</a>
+</div>
+
+<div class="main">
+  <div class="header">🛒 Ventas</div>
+
+  <div class="contenido">
+
+    <!-- PRODUCTOS -->
+    <div class="card">
+      <h3>Buscar producto</h3>
+      <input id="buscar" onkeyup="filtrar()">
+      <ul id="lista"></ul>
+    </div>
+
+    <!-- CARRITO -->
+    <div class="card">
+      <input id="cliente" placeholder="Cliente">
+      <input id="cedula" placeholder="Cédula">
+
+      <ul id="carrito"></ul>
+
+      <h3>Total: $<span id="total">0</span></h3>
+
+      <!-- 🔥 BOTONES NUEVOS -->
+      <div class="pagoBtn">
+        <button onclick="setTipo('efectivo')" id="btnE">Efectivo</button>
+        <button onclick="setTipo('credito')" id="btnC">Crédito</button>
+      </div>
+
+      <input id="montoRecibido" placeholder="Monto recibido" oninput="calcularVuelto()">
+
+      <p id="vueltoTxt">Vuelto: $0</p>
+
+      <button onclick="facturar()">Confirmar venta</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- FACTURA -->
+<div class="overlay" id="overlay">
+  <div class="factura" id="factura"></div>
+</div>
+
+<script>
+
+let productos = [];
+let carrito = [];
+let tipoPago = "efectivo";
+
+// ================= TIPO =================
+function setTipo(tipo){
+  tipoPago = tipo;
+
+  document.getElementById("btnE").classList.remove("activo");
+  document.getElementById("btnC").classList.remove("activo");
+
+  if(tipo === "efectivo"){
+    document.getElementById("btnE").classList.add("activo");
+  } else {
+    document.getElementById("btnC").classList.add("activo");
+    document.getElementById("montoRecibido").value = "";
+    document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
+  }
+}
+
+// ================= CALCULAR VUELTO =================
+function calcularVuelto(){
+  if(tipoPago !== "efectivo") return;
+
+  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
+  let pago = parseFloat(document.getElementById("montoRecibido").value);
+
+  if(isNaN(pago)){
+    document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
+    return;
+  }
+
+  let vuelto = pago - total;
+
+  document.getElementById("vueltoTxt").innerText =
+    "Vuelto: $" + (vuelto >= 0 ? vuelto.toFixed(2) : 0);
+}
+
+// ================= 🔥 BUSCAR CLIENTE =================
+async function buscarCliente() {
+  let cedula = document.getElementById("cedula").value;
+
+  if (!cedula) return;
+
+  try {
+    let res = await fetch(`http://localhost:3000/clientes/${cedula}`);
+    let data = await res.json();
+
+    if (data && data.nombre) {
+      document.getElementById("cliente").value = data.nombre;
+    } else {
+      document.getElementById("cliente").value = "";
+    }
+
+  } catch (err) {
+    console.log("Error buscando cliente", err);
+  }
+}
+
+// 🔥 auto buscar mientras escribe
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("cedula").addEventListener("input", buscarCliente);
+});
+
+// ================= CARGAR =================
+async function cargar() {
+  const res = await fetch('http://localhost:3000/productos');
+  productos = await res.json();
+  mostrar(productos);
+}
+
+// ================= MOSTRAR =================
+function mostrar(lista) {
+  let ul = document.getElementById('lista');
+  ul.innerHTML = '';
+
+  lista.forEach(p => {
+    ul.innerHTML += `
+      <li>
+        ${p.nombre} - $${p.precioVenta} (Stock: ${p.stock})
+        <button onclick="agregar('${p._id}')">+</button>
+      </li>
+    `;
+  });
+}
+
+// ================= FILTRAR =================
+function filtrar() {
+  let t = buscar.value.toLowerCase();
+
+  let f = productos.filter(p =>
+    (p.nombre || '').toLowerCase().includes(t) ||
+    (p.codigo || '').toLowerCase().includes(t)
+  );
+
+  mostrar(f);
+}
+
+// ================= AGREGAR =================
+function agregar(id) {
+  let p = productos.find(x => x._id === id);
+
+  let cant = parseInt(prompt("Cantidad"));
+  if (!cant || cant <= 0) return;
+
+  if (cant > p.stock) return alert("Sin stock");
+
+  let existe = carrito.find(x => x.id === id);
+
+  if (existe) {
+    existe.cantidad += cant;
+  } else {
+    carrito.push({
+      id,
+      nombre: p.nombre,
+      precio: p.precioVenta,
+      cantidad: cant
+    });
+  }
+
+  actualizar();
+}
+
+// ================= ACTUALIZAR =================
+function actualizar() {
+  let total = 0;
+
+  carrito.forEach(p => {
+    total += p.precio * p.cantidad;
+  });
+
+  document.getElementById('total').innerText = total.toFixed(2);
+
+  document.getElementById('carrito').innerHTML =
+    carrito.map(p =>
+      `<li>${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}</li>`
+    ).join("");
+}
+
+// ================= FACTURAR =================
+async function facturar() {
+
+  let cliente = document.getElementById('cliente').value;
+  let cedula = document.getElementById('cedula').value;
+
+  if (!cliente) return alert("Cliente requerido");
+  if (carrito.length === 0) return alert("Carrito vacío");
+
+  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
+
+  let pago = 0;
+  let vuelto = 0;
+  let meses = 0;
+
+  if(tipoPago === "credito"){
+    meses = parseInt(prompt("Meses"));
+    if(!meses) return alert("Mes inválido");
+  }
+
+  if(tipoPago === "efectivo"){
+    pago = parseFloat(document.getElementById("montoRecibido").value);
+
+    if(isNaN(pago) || pago < total){
+      return alert("Pago insuficiente");
+    }
+
+    vuelto = pago - total;
+  }
+
+  let html = `
+    <h2>FACTURA</h2>
+    <p>Cliente: ${cliente}</p>
+    <p>Cédula: ${cedula || "-"}</p>
+    <hr>
+  `;
+
+  carrito.forEach(p=>{
+    html += `<p>${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}</p>`;
+  });
+
+  html += `<hr><h3>Total: $${total.toFixed(2)}</h3>`;
+
+  if(tipoPago === "efectivo"){
+    html += `<p>Pago: $${pago.toFixed(2)}</p>`;
+    html += `<p>Vuelto: $${vuelto.toFixed(2)}</p>`;
+  }
+
+  document.getElementById('factura').innerHTML = html;
+  document.getElementById('overlay').style.display = 'flex';
+
+  setTimeout(async () => {
+
+    window.print();
+
+    for (let p of carrito) {
+      await fetch(`http://localhost:3000/productos/vender/${p.id}`, {
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ cantidad: p.cantidad })
+      });
+    }
+
+    await fetch('http://localhost:3000/ventas',{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        cliente,
+        cedula,
+        productos: carrito,
+        total,
+        tipo: tipoPago,
+        meses,
+        pago,
+        vuelto
+      })
+    });
+
+    if(tipoPago === "credito"){
+      await fetch('http://localhost:3000/deudas',{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          cliente,
+          cedula,
+          total,
+          meses,
+          pagado: 0
+        })
+      });
+    }
+
+    carrito = [];
+    actualizar();
+
+    document.getElementById("cliente").value = "";
+    document.getElementById("cedula").value = "";
+    document.getElementById("montoRecibido").value = "";
+    document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
+
+    document.getElementById('overlay').style.display = 'none';
+
+  }, 800);
+}
+
+cargar();
+
+</script>
+
+
+</body>
+</html>

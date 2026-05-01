@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bodega - Bazar Bellita</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI';
+      display: flex;
+      background: #f5f6fa;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e272e;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      color: white;
+      padding: 10px;
+      text-decoration: none;
+      margin-top: 10px;
+      border-radius: 6px;
+    }
+
+    .sidebar a:hover {
+      background: #485460;
+    }
+
+    .main { flex: 1; }
+
+    .header {
+      background: #ff3f34;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+    }
+
+    .contenido { padding: 20px; }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      background: #ff3f34;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #e84118; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+
+<div class="sidebar">
+  <h2>FIVI</h2>
+  <a href="index.html">💰 Venta</a>
+  <a href="bodega.html">📦 Bodega</a>
+  <a href="deuda.html">💸 Deudas</a>
+  <a href="analisis.html">📊 Análisis</a>
+  <a href="caja.html">💵 Caja</a>
+    <a href="cliente.html">👤 Clientes</a>
+</div>
+
+
+<div class="main">
+
+  <div class="header">📦 Bodega - Inventario</div>
+
+  <div class="contenido">
+
+    <!-- FORM -->
+    <div class="card">
+      <h3>➕ Agregar Producto</h3>
+
+      <input id="codigo" placeholder="Código">
+      <input id="nombre" placeholder="Nombre">
+      <input id="precioCompra" type="number" placeholder="Compra">
+      <input id="precioVenta" type="number" placeholder="Venta">
+      <input id="stock" type="number" placeholder="Stock">
+
+      <button onclick="guardar()">Guardar</button>
+    </div>
+
+    <!-- TABLA -->
+    <div class="card">
+      <h3>📋 Inventario</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Compra</th>
+            <th>Venta</th>
+            <th>Stock</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+
+const PASSWORD = "bellita123";
+let productos = [];
+
+// ================= CARGAR =================
+async function cargar() {
+  const res = await fetch('http://localhost:3000/productos');
+  const data = await res.json().catch(()=>[]);
+
+  productos = Array.isArray(data) ? data : [];
+
+  const tabla = document.getElementById('tabla');
+  tabla.innerHTML = '';
+
+  productos.forEach(p => {
+    tabla.innerHTML += `
+      <tr>
+        <td>${p.codigo || '-'}</td>
+        <td>${p.nombre}</td>
+        <td>$${p.precioCompra}</td>
+        <td>$${p.precioVenta}</td>
+        <td>${p.stock}</td>
+        <td>
+          <button onclick="agregarStock('${p._id}')">➕ Stock</button>
+          <button onclick="editarPrecio('${p._id}', ${p.precioVenta})">💲 Precio</button>
+          <button onclick="eliminar('${p._id}')">🗑️</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// ================= GUARDAR =================
+async function guardar() {
+
+  if (!nombre.value || !precioVenta.value || !stock.value) {
+    return alert("Completa los datos");
+  }
+
+  const data = {
+    codigo: codigo.value,
+    nombre: nombre.value,
+    precioCompra: Number(precioCompra.value) || 0,
+    precioVenta: Number(precioVenta.value),
+    stock: Number(stock.value)
+  };
+
+  await fetch('http://localhost:3000/productos', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  });
+
+  limpiar();
+  cargar();
+}
+
+// ================= AGREGAR STOCK =================
+async function agregarStock(id){
+
+  let cantidad = parseInt(prompt("¿Cuánto deseas agregar al stock?"));
+
+  if (!cantidad || cantidad <= 0) return alert("Cantidad inválida");
+
+  await fetch(`http://localhost:3000/productos/agregar/${id}`, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ cantidad })
+  });
+
+  cargar();
+}
+
+// ================= EDITAR PRECIO =================
+async function editarPrecio(id, precioActual){
+
+  let nuevo = parseFloat(prompt("Nuevo precio:", precioActual));
+
+  if (!nuevo || nuevo <= 0) return;
+
+  await fetch(`http://localhost:3000/productos/${id}`, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ precioVenta: nuevo })
+  });
+
+  cargar();
+}
+
+// ================= ELIMINAR =================
+async function eliminar(id){
+
+  let pass = prompt("🔐 contraseña");
+
+  if(pass !== PASSWORD){
+    alert("❌ Incorrecta");
+    return;
+  }
+
+  await fetch(`http://localhost:3000/productos/${id}`,{
+    method:'DELETE'
+  });
+
+  cargar();
+}
+
+// ================= LIMPIAR =================
+function limpiar(){
+  codigo.value="";
+  nombre.value="";
+  precioCompra.value="";
+  precioVenta.value="";
+  stock.value="";
+}
+
+// ================= INICIO =================
+cargar();
+
+</script>
+
+</body>
+</html>
