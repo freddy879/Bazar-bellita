@@ -91,17 +91,15 @@
 
 <body>
 
-
 <div class="sidebar">
   <h2>FIVI</h2>
   <a href="index.html">💰 Venta</a>
   <a href="bodega.html">📦 Bodega</a>
   <a href="deuda.html">💸 Deudas</a>
-  <a href="analisis.html">📊 Análisis</a>
+  <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
-    <a href="cliente.html">👤 Clientes</a>
+  <a href="cliente.html">👤 Clientes</a>
 </div>
-
 
 <div class="main">
 
@@ -109,6 +107,7 @@
 
   <div class="container">
 
+    <!-- NUEVO CLIENTE -->
     <div class="card">
       <h3>➕ Nuevo Cliente</h3>
 
@@ -119,6 +118,7 @@
       <button onclick="guardar()">Guardar</button>
     </div>
 
+    <!-- LISTA -->
     <div class="card">
       <h3>📋 Lista de Clientes</h3>
 
@@ -128,6 +128,7 @@
             <th>Nombre</th>
             <th>Cédula</th>
             <th>Teléfono</th>
+            <th>Acción</th>
           </tr>
         </thead>
 
@@ -138,13 +139,12 @@
   </div>
 </div>
 
-<tbody id="tabla"></tbody>
-
 <script>
 
+// ================= CARGAR =================
 async function cargar(){
 
-  const res = await fetch('http://localhost:3000/clientes');
+  const res = await fetch('/clientes');
   const data = await res.json();
 
   let tabla = document.getElementById("tabla");
@@ -155,9 +155,10 @@ async function cargar(){
       <tr>
         <td>${c.nombre}</td>
         <td>${c.cedula}</td>
-        <td>${c.telefono || ""}</td>
+        <td>${c.telefono || "-"}</td>
         <td>
-          <button onclick="eliminar('${c._id}')">🗑 Eliminar</button>
+          <button onclick="editar('${c._id}','${c.nombre}','${c.cedula}','${c.telefono || ""}')">✏️</button>
+          <button onclick="eliminar('${c._id}')">🗑</button>
         </td>
       </tr>
     `;
@@ -171,7 +172,7 @@ async function guardar(){
     return alert("Completa nombre y cédula");
   }
 
-  await fetch('http://localhost:3000/clientes', {
+  await fetch('/clientes', {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -188,6 +189,32 @@ async function guardar(){
   cargar();
 }
 
+// ================= EDITAR =================
+async function editar(id, nombreActual, cedulaActual, telefonoActual){
+
+  let nuevoNombre = prompt("Nuevo nombre:", nombreActual);
+  if(nuevoNombre === null) return;
+
+  let nuevaCedula = prompt("Nueva cédula:", cedulaActual);
+  if(nuevaCedula === null) return;
+
+  let nuevoTelefono = prompt("Nuevo teléfono:", telefonoActual);
+  if(nuevoTelefono === null) return;
+
+  await fetch('/clientes/editar', {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      id,
+      nombre: nuevoNombre,
+      cedula: nuevaCedula,
+      telefono: nuevoTelefono
+    })
+  });
+
+  cargar();
+}
+
 // ================= ELIMINAR =================
 async function eliminar(id){
 
@@ -200,7 +227,7 @@ async function eliminar(id){
   let confirmar = confirm("⚠️ ¿Seguro que quieres eliminar este cliente?");
   if(!confirmar) return;
 
-  await fetch(`http://localhost:3000/clientes/${id}`, {
+  await fetch(`/clientes/${id}`, {
     method: "DELETE"
   });
 
