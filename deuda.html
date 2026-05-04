@@ -162,8 +162,7 @@ async function cargar() {
   mostrar(deudas);
 }
 
-
-/ ================= AGREGAR (FIX DEFINITIVO) =================
+// ================= AGREGAR =================
 async function agregar(){
 
   let nombreV = document.getElementById("nombre").value;
@@ -177,7 +176,7 @@ async function agregar(){
 
   try {
 
-    await fetch(API + '/deudas', {
+    const res = await fetch(API + '/deudas', {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -192,16 +191,17 @@ async function agregar(){
       })
     });
 
+    if(!res.ok) throw new Error("Error en servidor");
+
     limpiar();
     cargar();
 
   } catch (err) {
     console.log(err);
-    alert("❌ Error al guardar");
+    alert("❌ Error al guardar (revisa backend)");
   }
 }
 
-  
 // ================= MOSTRAR =================
 function mostrar(lista){
 
@@ -233,7 +233,7 @@ function mostrar(lista){
   });
 }
 
-// ================= ELIMINAR FIX =================
+// ================= ELIMINAR =================
 async function eliminar(id){
 
   let pass = prompt("Contraseña");
@@ -249,10 +249,12 @@ async function eliminar(id){
   cargar();
 }
 
-// ================= VER FACTURA =================
+// ================= VER =================
 function ver(id){
 
   let d = deudas.find(x => x._id === id);
+
+  if(!d) return alert("No encontrado");
 
   let html = `
 🧾 DETALLE DEUDA<br><br>
@@ -284,7 +286,7 @@ Celular: ${d.celular || "-"}<br><br>
   w.document.write(html);
 }
 
-// ================= ABONAR FIX REAL =================
+// ================= ABONAR =================
 async function abonar(id){
 
   let input = document.getElementById(`abono${id}`);
@@ -298,41 +300,8 @@ async function abonar(id){
     body: JSON.stringify({ id, monto })
   });
 
-  await cargar(); // 🔥 IMPORTANTE
-
-  let d = deudas.find(x => x._id === id);
-
-  let html = `
-🧾 DETALLE DEUDA<br><br>
-
-Cliente: ${d.cliente}<br><br>
-Cédula: ${d.cedula}<br><br>
-Celular: ${d.celular || "-"}<br><br>
-
-📦 Productos<br>
-`;
-
-  (d.productos || []).forEach(p=>{
-    html += `${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}<br>`;
-  });
-
-  html += `<br>💰 Pagos<br>`;
-
-  (d.pagos || []).forEach(p=>{
-    html += `$${p.monto} - ${new Date(p.fecha).toLocaleString()}<br>`;
-  });
-
-  html += `
-<br>Total: $${d.total}
-<br>Pagado: $${d.pagado}
-<br>Restante: $${d.total - d.pagado}
-`;
-
-  let w = window.open("", "", "width=400,height=600");
-  w.document.write(html);
-  w.print();
-
   input.value = "";
+  cargar();
 }
 
 // ================= BUSCAR =================
@@ -346,27 +315,15 @@ function buscarCliente(){
   ));
 }
 
-// ================= AGREGAR =================
-async function agregar(){
-
-  let total = parseFloat(monto.value);
-  if(!total) return alert("Monto inválido");
-
-  await fetch(API + '/deudas', {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      cliente: nombre.value + " " + apellido.value,
-      cedula,
-      celular,
-      direccion,
-      total,
-      productos: [],
-      pagos: []
-    })
-  });
-
-  cargar();
+// ================= LIMPIAR =================
+function limpiar(){
+  document.getElementById("nombre").value = "";
+  document.getElementById("apellido").value = "";
+  document.getElementById("cedula").value = "";
+  document.getElementById("celular").value = "";
+  document.getElementById("direccion").value = "";
+  document.getElementById("monto").value = "";
+  document.getElementById("meses").value = "";
 }
 
 cargar();
