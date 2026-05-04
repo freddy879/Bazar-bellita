@@ -225,9 +225,13 @@ app.delete('/productos/:id', async (req, res) => {
 
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
+
+  // 🔥 GUARDAR VENTA
   await new Venta(req.body).save();
 
+  // ================= EFECTIVO =================
   if (req.body.tipo === "efectivo") {
+
     let caja = await Caja.findOne({ activa: true });
 
     if (caja) {
@@ -242,6 +246,22 @@ app.post('/ventas', async (req, res) => {
 
       await caja.save();
     }
+  }
+
+  // ================= CREDITO =================
+  if (req.body.tipo === "credito") {
+
+    await new Deuda({
+      cliente: req.body.cliente,
+      cedula: req.body.cedula || "SIN CÉDULA",
+      celular: "",
+      direccion: "",
+      total: req.body.total,
+      pagado: 0,
+      productos: req.body.productos || [],
+      pagos: []
+    }).save();
+
   }
 
   res.json({ ok: true });
