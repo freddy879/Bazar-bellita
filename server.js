@@ -17,30 +17,11 @@ console.log("DB:", process.env.MONGO_DB);
 // ================== MONGO ==================
 const mongoose = require('mongoose');
 
-const options = {
-  serverSelectionTimeoutMS: 5000, // evita quedarse colgado mucho tiempo
-  maxPoolSize: 10,               // conexiones simultáneas (más estable)
-  minPoolSize: 2,                // mantiene conexión caliente
-  socketTimeoutMS: 45000,       // evita cortes rápidos
-  family: 4                     // fuerza IPv4 (evita errores raros en algunos hosts)
-};
+const user = process.env.MONGO_USER;
+const pass = encodeURIComponent(process.env.MONGO_PASS);
+const db = process.env.MONGO_DB;
 
-mongoose.connect(URI, options)
-.then(() => console.log("✅ Mongo conectado"))
-.catch(err => console.log("❌ Error Mongo:", err.message));
-
-// 🔥 eventos útiles (muy recomendado)
-mongoose.connection.on('connected', () => {
-  console.log("⚡ MongoDB conectado estable");
-});
-
-mongoose.connection.on('error', (err) => {
-  console.log("⚠️ Error Mongo:", err.message);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log("⚠️ Mongo desconectado");
-});
+const URI = `mongodb+srv://${user}:${pass}@cluster0.8otlbi7.mongodb.net/${db}?retryWrites=true&w=majority`;
 // ================== MODELOS ==================
 const Producto = mongoose.model('Producto', {
   nombre: String,
