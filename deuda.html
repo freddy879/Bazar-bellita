@@ -149,24 +149,24 @@
 
 <script>
 
-const API = window.location.origin; // 🔥 clave para que funcione en cualquier host
+// 🔥 CAMBIA ESTO POR TU BACKEND REAL
+const API = "https://TU-BACKEND.onrender.com";
+
 let deudas = [];
 
 // ================= CARGAR =================
 async function cargar() {
-  try {
+  try{
     const res = await fetch(API + '/deudas');
 
-    if(!res.ok){
-      throw new Error("Servidor respondió mal");
-    }
+    if(!res.ok) throw new Error("Servidor no responde");
 
     deudas = await res.json();
     mostrar(deudas);
 
-  } catch (e) {
+  }catch(e){
     console.error("Error:", e);
-    alert("❌ No conecta con el servidor\n\nVerifica que esté encendido en puerto 3000");
+    alert("❌ No conecta con el servidor\nRevisa tu backend");
   }
 }
 
