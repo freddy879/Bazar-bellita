@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Bodega - Bazar Bellita</title>
+  <title>Caja - Bazar Bellita</title>
 
   <style>
     body {
@@ -17,6 +17,7 @@
       color: white;
       height: 100vh;
       padding: 20px;
+      box-sizing: border-box;
     }
 
     .sidebar a {
@@ -25,14 +26,18 @@
       padding: 10px;
       text-decoration: none;
       margin-top: 10px;
-      border-radius: 6px;
+      border-radius: 8px;
     }
 
     .sidebar a:hover {
       background: #485460;
     }
 
-    .main { flex: 1; }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
 
     .header {
       background: #ff3f34;
@@ -41,43 +46,75 @@
       font-size: 20px;
     }
 
-    .contenido { padding: 20px; }
+    .contenido {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
 
     .card {
       background: white;
       padding: 20px;
       border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     }
 
     input {
       padding: 10px;
-      margin: 5px;
-      border-radius: 8px;
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 6px;
       border: 1px solid #ccc;
+      box-sizing: border-box;
     }
 
     button {
+      margin-top: 10px;
+      width: 100%;
       padding: 10px;
       border: none;
       background: #ff3f34;
       color: white;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
+      font-weight: bold;
     }
 
-    button:hover { background: #e84118; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    button:hover {
+      background: #e84118;
     }
 
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: center;
+    .saldo {
+      font-size: 22px;
+      color: green;
+      font-weight: bold;
+    }
+
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        width: 80mm;
+        font-family: monospace;
+        font-size: 12px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .sidebar,
+      button {
+        display: none !important;
+      }
+
+      .card {
+        box-shadow: none;
+        border: none;
+        padding: 5px;
+      }
     }
   </style>
 </head>
@@ -89,46 +126,42 @@
   <a href="index.html">💰 Venta</a>
   <a href="bodega.html">📦 Bodega</a>
   <a href="deuda.html">💸 Deudas</a>
-  <a href="analisis.html">📊 Análisis</a>
+  <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
   <a href="cliente.html">👤 Clientes</a>
 </div>
 
 <div class="main">
 
-  <div class="header">📦 Bodega - Inventario</div>
+  <div class="header">🏦 Control de Caja</div>
 
   <div class="contenido">
 
     <div class="card">
-      <h3>➕ Agregar Producto</h3>
-
-      <input id="codigo" placeholder="Código">
-      <input id="nombre" placeholder="Nombre">
-      <input id="precioCompra" type="number" placeholder="Compra">
-      <input id="precioVenta" type="number" placeholder="Venta">
-      <input id="stock" type="number" placeholder="Stock">
-
-      <button onclick="guardar()">Guardar</button>
+      <h3>🟢 Abrir Caja</h3>
+      <input id="monto" type="number" placeholder="Monto inicial">
+      <button onclick="abrir()">Abrir</button>
     </div>
 
     <div class="card">
-      <h3>📋 Inventario</h3>
+      <h3>📊 Estado</h3>
+      <p>Apertura: $<span id="apertura">0</span></p>
+      <p>Ingresos: $<span id="ingresos">0</span></p>
+      <p>Gastos: $<span id="gastos">0</span></p>
+      <p class="saldo">Saldo: $<span id="saldo">0</span></p>
+      <button onclick="cargar()">Actualizar</button>
+    </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Compra</th>
-            <th>Venta</th>
-            <th>Stock</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+    <div class="card">
+      <h3>💸 Gasto</h3>
+      <input id="gasto" type="number" placeholder="Monto">
+      <input id="motivo" type="text" placeholder="Motivo">
+      <button onclick="registrarGasto()">Registrar</button>
+    </div>
 
-        <tbody id="tabla"></tbody>
-      </table>
+    <div class="card">
+      <h3>🔴 Cerrar Caja</h3>
+      <button onclick="cerrar()">Cerrar Caja</button>
     </div>
 
   </div>
@@ -137,123 +170,160 @@
 <script>
 
 const API = "https://bazar-bellita.onrender.com";
-const PASSWORD = "bellita123";
-let productos = [];
 
-// ================= CARGAR =================
-async function cargar() {
+// ================== ABRIR ==================
+async function abrir(){
+  let monto = Number(document.getElementById('monto').value);
+  if(!monto || monto <= 0) return alert("Monto inválido");
+
   try{
-    const res = await fetch(API + '/productos');
-    const data = await res.json();
-
-    productos = Array.isArray(data) ? data : [];
-
-    const tabla = document.getElementById('tabla');
-    tabla.innerHTML = '';
-
-    productos.forEach(p => {
-      tabla.innerHTML += `
-        <tr>
-          <td>${p.codigo || '-'}</td>
-          <td>${p.nombre}</td>
-          <td>$${p.precioCompra}</td>
-          <td>$${p.precioVenta}</td>
-          <td>${p.stock}</td>
-          <td>
-            <button onclick="agregarStock('${p._id}')">➕</button>
-            <button onclick="editarPrecio('${p._id}', ${p.precioVenta})">💲</button>
-            <button onclick="eliminar('${p._id}')">🗑️</button>
-          </td>
-        </tr>
-      `;
+    let res = await fetch(API + '/caja/abrir',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ monto })
     });
 
-  }catch(e){
-    alert("❌ No conecta con el servidor");
+    let data = await res.json();
+    alert(data.error || "Caja abierta ✔");
+
+  }catch{
+    alert("❌ Error conexión");
+  }
+
+  document.getElementById('monto').value = "";
+  cargar();
+}
+
+// ================== CARGAR ==================
+async function cargar(){
+  try{
+    let res = await fetch(API + '/caja');
+    let data = await res.json();
+
+    apertura.innerText = data?.apertura || 0;
+    ingresos.innerText = data?.ingresos || 0;
+    gastos.innerText = data?.gastos || 0;
+    saldo.innerText = data?.saldo || 0;
+
+  }catch{
+    apertura.innerText = 0;
+    ingresos.innerText = 0;
+    gastos.innerText = 0;
+    saldo.innerText = 0;
   }
 }
 
-// ================= GUARDAR =================
-async function guardar() {
+// ================== GASTO ==================
+async function registrarGasto(){
+  let monto = Number(document.getElementById('gasto').value);
+  let motivo = document.getElementById('motivo').value || "Sin motivo";
 
-  if (!nombre.value || !precioVenta.value || !stock.value) {
-    return alert("Completa los datos");
+  if(!monto || monto <= 0) return alert("Monto inválido");
+
+  try{
+    let res = await fetch(API + '/caja/gasto',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ monto, motivo })
+    });
+
+    let data = await res.json();
+    alert(data.error || "Gasto registrado ✔");
+
+  }catch{
+    alert("❌ Error conexión");
   }
 
-  await fetch(API + '/productos', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      codigo: codigo.value,
-      nombre: nombre.value,
-      precioCompra: Number(precioCompra.value) || 0,
-      precioVenta: Number(precioVenta.value),
-      stock: Number(stock.value)
-    })
-  });
-
-  limpiar();
-  cargar();
-}
-
-// ================= STOCK =================
-async function agregarStock(id){
-
-  let cantidad = parseInt(prompt("Agregar stock"));
-
-  if (!cantidad || cantidad <= 0) return;
-
-  await fetch(API + `/productos/agregar/${id}`, {
-    method: "PUT",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ cantidad })
-  });
+  document.getElementById('gasto').value = "";
+  document.getElementById('motivo').value = "";
 
   cargar();
 }
 
-// ================= EDITAR PRECIO =================
-async function editarPrecio(id, precioActual){
+// ================== IMPRIMIR ==================
+function imprimirFactura(data){
+  let ventana = window.open("", "_blank", "width=400,height=600");
 
-  let nuevo = parseFloat(prompt("Nuevo precio:", precioActual));
+  ventana.document.write(`
+    <html>
+    <head>
+      <title>Cierre Caja</title>
+      <style>
+        body { font-family: monospace; width: 80mm; padding: 10px; }
+        h2 { text-align: center; }
+        .linea { border-top: 1px dashed #000; margin: 10px 0; }
+      </style>
+    </head>
+    <body>
 
-  if (!nuevo || nuevo <= 0) return;
+      <h2>📄 CIERRE CAJA</h2>
 
-  await fetch(API + `/productos/${id}`, {
-    method: "PUT",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ precioVenta: nuevo })
-  });
+      <div class="linea"></div>
 
-  cargar();
+      <p>Apertura: $${data.apertura}</p>
+      <p>Ingresos: $${data.ingresos}</p>
+      <p>Gastos: $${data.gastos}</p>
+
+      <div class="linea"></div>
+
+      <p>Esperado: $${data.esperado}</p>
+      <p>Real: $${data.real}</p>
+      <p>Diferencia: $${data.diferencia}</p>
+
+      <div class="linea"></div>
+
+      <p><b>Dejado: $${data.dejar ?? 0}</b></p>
+
+      <div class="linea"></div>
+
+      <p>${new Date().toLocaleString()}</p>
+
+      <script>
+        window.onload = () => window.print();
+      <\/script>
+
+    </body>
+    </html>
+  `);
+
+  ventana.document.close();
 }
 
-// ================= ELIMINAR =================
-async function eliminar(id){
+// ================== CERRAR ==================
+async function cerrar(){
 
-  let pass = prompt("Contraseña");
+  let montoReal = prompt("¿Cuánto dinero hay en caja?");
+  let dejar = prompt("¿Cuánto quieres dejar?");
 
-  if(pass !== PASSWORD){
-    return alert("Incorrecta");
+  if(!montoReal || isNaN(montoReal)) return alert("Monto inválido");
+  if(!dejar || isNaN(dejar)) dejar = 0;
+
+  try{
+    let res = await fetch(API + '/caja/cerrar',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ 
+        montoReal: Number(montoReal),
+        dejar: Number(dejar)
+      })
+    });
+
+    let data = await res.json();
+
+    if(!data.error){
+      imprimirFactura(data);
+      alert("Caja cerrada ✔");
+    } else {
+      alert(data.error);
+    }
+
+  }catch{
+    alert("❌ Error conexión");
   }
 
-  await fetch(API + `/productos/${id}`,{
-    method:'DELETE'
-  });
-
   cargar();
 }
 
-// ================= LIMPIAR =================
-function limpiar(){
-  codigo.value="";
-  nombre.value="";
-  precioCompra.value="";
-  precioVenta.value="";
-  stock.value="";
-}
-
-// ================= INICIO =================
 cargar();
 
 </script>
