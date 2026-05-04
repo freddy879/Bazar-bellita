@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
   <title>Deudas - Bazar Bellita</title>
@@ -149,7 +149,6 @@
 
 <script>
 
-// 🔥 AUTO DETECCIÓN LOCAL vs PRODUCCIÓN
 const API = location.hostname === "localhost"
   ? "http://localhost:3000"
   : "https://bazar-bellita.onrender.com";
@@ -158,47 +157,9 @@ let deudas = [];
 
 // ================= CARGAR =================
 async function cargar() {
-  try{
-    const res = await fetch(API + '/deudas');
-
-    if(!res.ok) throw new Error("Servidor no responde");
-
-    deudas = await res.json();
-    mostrar(deudas);
-
-  }catch(e){
-    console.error("Error:", e);
-    alert("❌ No conecta con el servidor\nRevisa tu backend");
-  }
-}
-
-// ================= AGREGAR =================
-async function agregar() {
-
-  let total = parseFloat(monto.value);
-  if (!total) return alert("Monto inválido");
-
-  try{
-    await fetch(API + '/deudas', {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        cliente: nombre.value + " " + apellido.value,
-        cedula: cedula.value || "SIN CÉDULA",
-        celular: celular.value || "",
-        direccion: direccion.value || "",
-        total,
-        meses: parseInt(meses.value) || 1,
-        pagado: 0
-      })
-    });
-
-    limpiar();
-    cargar();
-
-  }catch(e){
-    alert("❌ Error al guardar");
-  }
+  const res = await fetch(API + '/deudas');
+  deudas = await res.json();
+  mostrar(deudas);
 }
 
 // ================= MOSTRAR =================
@@ -206,11 +167,6 @@ function mostrar(lista){
 
   let tabla = document.getElementById("tabla");
   tabla.innerHTML = "";
-
-  if(!lista || lista.length === 0){
-    tabla.innerHTML = `<tr><td colspan="8">No hay deudas</td></tr>`;
-    return;
-  }
 
   lista.forEach(d => {
 
@@ -229,7 +185,7 @@ function mostrar(lista){
         <td>
           <input id="abono${d._id}" placeholder="Abono" style="width:80px">
           <button onclick="abonar('${d._id}')">💰</button>
-          <button onclick="editar('${d._id}','${d.cliente}','${d.cedula}','${d.celular || ""}')">✏️</button>
+          <button onclick="ver('${d._id}')">👁️</button>
           <button onclick="eliminar('${d._id}')">🗑</button>
         </td>
       </tr>
@@ -237,7 +193,58 @@ function mostrar(lista){
   });
 }
 
-// ================= ABONAR =================
+// ================= ELIMINAR FIX =================
+async function eliminar(id){
+
+  let pass = prompt("Contraseña");
+
+  if(pass !== "bellita123"){
+    return alert("Incorrecta");
+  }
+
+  await fetch(`${API}/deudas/${id}`, {
+    method: "DELETE"
+  });
+
+  cargar();
+}
+
+// ================= VER FACTURA =================
+function ver(id){
+
+  let d = deudas.find(x => x._id === id);
+
+  let html = `
+🧾 DETALLE DEUDA<br><br>
+
+Cliente: ${d.cliente}<br><br>
+Cédula: ${d.cedula}<br><br>
+Celular: ${d.celular || "-"}<br><br>
+
+📦 Productos<br>
+`;
+
+  (d.productos || []).forEach(p=>{
+    html += `${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}<br>`;
+  });
+
+  html += `<br>💰 Pagos<br>`;
+
+  (d.pagos || []).forEach(p=>{
+    html += `$${p.monto} - ${new Date(p.fecha).toLocaleString()}<br>`;
+  });
+
+  html += `
+<br>Total: $${d.total}
+<br>Pagado: $${d.pagado}
+<br>Restante: $${d.total - d.pagado}
+`;
+
+  let w = window.open("", "", "width=400,height=600");
+  w.document.write(html);
+}
+
+// ================= ABONAR FIX REAL =================
 async function abonar(id){
 
   let input = document.getElementById(`abono${id}`);
@@ -251,50 +258,41 @@ async function abonar(id){
     body: JSON.stringify({ id, monto })
   });
 
+  await cargar(); // 🔥 IMPORTANTE
+
+  let d = deudas.find(x => x._id === id);
+
+  let html = `
+🧾 DETALLE DEUDA<br><br>
+
+Cliente: ${d.cliente}<br><br>
+Cédula: ${d.cedula}<br><br>
+Celular: ${d.celular || "-"}<br><br>
+
+📦 Productos<br>
+`;
+
+  (d.productos || []).forEach(p=>{
+    html += `${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}<br>`;
+  });
+
+  html += `<br>💰 Pagos<br>`;
+
+  (d.pagos || []).forEach(p=>{
+    html += `$${p.monto} - ${new Date(p.fecha).toLocaleString()}<br>`;
+  });
+
+  html += `
+<br>Total: $${d.total}
+<br>Pagado: $${d.pagado}
+<br>Restante: $${d.total - d.pagado}
+`;
+
+  let w = window.open("", "", "width=400,height=600");
+  w.document.write(html);
+  w.print();
+
   input.value = "";
-  cargar();
-}
-
-// ================= EDITAR =================
-async function editar(id, nombreActual, cedulaActual, celularActual){
-
-  let nuevoNombre = prompt("Nuevo nombre:", nombreActual);
-  if(nuevoNombre === null) return;
-
-  let nuevaCedula = prompt("Nueva cédula:", cedulaActual);
-  if(nuevaCedula === null) return;
-
-  let nuevoCelular = prompt("Nuevo celular:", celularActual);
-  if(nuevoCelular === null) return;
-
-  await fetch(API + '/deudas/editar', {
-    method: "PUT",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      id,
-      cliente: nuevoNombre,
-      cedula: nuevaCedula,
-      celular: nuevoCelular
-    })
-  });
-
-  cargar();
-}
-
-// ================= ELIMINAR =================
-async function eliminar(id){
-
-  let pass = prompt("Contraseña");
-
-  if(pass !== "bellita123"){
-    return alert("Incorrecta");
-  }
-
-  await fetch(API + `/deudas/${id}`, {
-    method: "DELETE"
-  });
-
-  cargar();
 }
 
 // ================= BUSCAR =================
@@ -302,23 +300,33 @@ function buscarCliente(){
 
   let t = document.getElementById("buscar").value.toLowerCase();
 
-  let f = deudas.filter(d =>
+  mostrar(deudas.filter(d =>
     (d.cliente || "").toLowerCase().includes(t) ||
     (d.cedula || "").includes(t)
-  );
-
-  mostrar(f);
+  ));
 }
 
-// ================= LIMPIAR =================
-function limpiar(){
-  nombre.value="";
-  apellido.value="";
-  cedula.value="";
-  celular.value="";
-  direccion.value="";
-  monto.value="";
-  meses.value="";
+// ================= AGREGAR =================
+async function agregar(){
+
+  let total = parseFloat(monto.value);
+  if(!total) return alert("Monto inválido");
+
+  await fetch(API + '/deudas', {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      cliente: nombre.value + " " + apellido.value,
+      cedula,
+      celular,
+      direccion,
+      total,
+      productos: [],
+      pagos: []
+    })
+  });
+
+  cargar();
 }
 
 cargar();
