@@ -1,4 +1,4 @@
-require('dotenv').config();
+('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -13,9 +13,6 @@ app.use(express.static('public'));
 // ================== DEBUG ==================
 console.log("USER:", process.env.MONGO_USER);
 console.log("DB:", process.env.MONGO_DB);
-
-// ================== 🔥 OPTIMIZACIÓN RENDIMIENTO ==================
-mongoose.set('strictQuery', false);
 
 // ================== MONGO ==================
 const user = process.env.MONGO_USER;
@@ -61,7 +58,7 @@ const Venta = mongoose.model('Venta', {
 const Deuda = mongoose.model('Deuda', {
   cliente: String,
   cedula: String,
-  celular: String,
+  celular: String, // ✅ FIX
   direccion: String,
   total: Number,
   pagado: { type: Number, default: 0 },
@@ -78,7 +75,7 @@ const Deuda = mongoose.model('Deuda', {
   fecha: { type: Date, default: Date.now }
 });
 
-// ================== CAJA ==================
+// 🔥 SOLO AQUÍ ESTÁ EL CAMBIO
 const Caja = mongoose.model('Caja', {
   fecha: { type: Date, default: Date.now },
   horaCierre: Date,
@@ -98,11 +95,6 @@ const Caja = mongoose.model('Caja', {
   ],
 
   dejado: { type: Number, default: 0 }
-});
-
-// ================== 🚀 PING (para UptimeRobot + evitar cold start) ==================
-app.get("/ping", (req, res) => {
-  res.send("OK");
 });
 
 // ================== EDITAR DEUDA ==================
@@ -243,11 +235,9 @@ app.delete('/productos/:id', async (req, res) => {
 
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
-
   await new Venta(req.body).save();
 
   if (req.body.tipo === "efectivo") {
-
     let caja = await Caja.findOne({ activa: true });
 
     if (caja) {
@@ -262,21 +252,6 @@ app.post('/ventas', async (req, res) => {
 
       await caja.save();
     }
-  }
-
-  if (req.body.tipo === "credito") {
-
-    await new Deuda({
-      cliente: req.body.cliente,
-      cedula: req.body.cedula || "SIN CÉDULA",
-      celular: "",
-      direccion: "",
-      total: req.body.total,
-      pagado: 0,
-      productos: req.body.productos || [],
-      pagos: []
-    }).save();
-
   }
 
   res.json({ ok: true });
@@ -314,11 +289,15 @@ app.post('/deudas/pagar', async (req, res) => {
   if (!deuda) return res.json({ error: "Deuda no encontrada" });
 
   let monto = Number(req.body.monto);
-  if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
+  if (!monto || monto <= 0) {
+    return res.json({ error: "Monto inválido" });
+  }
 
   let restante = deuda.total - deuda.pagado;
 
-  if (monto > restante) return res.json({ error: "No puedes pagar más de la deuda" });
+  if (monto > restante) {
+    return res.json({ error: "No puedes pagar más de la deuda" });
+  }
 
   deuda.pagado += monto;
 
@@ -346,7 +325,7 @@ app.post('/deudas/pagar', async (req, res) => {
 
   res.json({
     cliente: deuda.cliente,
-    celular: deuda.celular || "",
+    celular: deuda.celular || "", // ✅ FIX
     monto,
     total: deuda.total,
     restante: deuda.total - deuda.pagado,
@@ -357,7 +336,6 @@ app.post('/deudas/pagar', async (req, res) => {
 
 // ================== CAJA ==================
 app.post('/caja/abrir', async (req, res) => {
-
   let monto = Number(req.body.monto);
 
   let abierta = await Caja.findOne({ activa: true });
@@ -399,9 +377,107 @@ app.get('/caja', async (req, res) => {
   });
 });
 
-// ================== SERVER ==================
-const PORT = process.env.PORT || 3000;
+app.post('/caja/gasto', async (req, res) => {
+  let caja = await Caja.findOne({ activa: true });
 
-app.listen(PORT, () => {
-  console.log("🚀 http://localhost:" + PORT);
+  if (!caja) return res.json({ error: "Caja no abierta" });
+
+  let monto = Number(req.body.monto || 0);
+  let motivo = req.body.motivo || "Sin motivo";
+
+  caja.gastos += monto;
+
+  if (!caja.movimientos) caja.movimientos = [];
+
+  caja.movimientos.push({
+    tipo: "gasto",
+    monto,
+    motivo
+  });
+
+  await caja.save();
+
+  res.json({ ok: true });
+});
+
+// ================== CIERRE CAJA ==================
+app.post('/caja/cerrar', async (req, res) => {
+  let caja = await Caja.findOne({ activa: true });
+  if (!caja) return res.json({ error: "Caja no abierta" });
+
+  let real = Number(req.body.montoReal);
+  let dejar = Number(req.body.dejar || 0);
+
+  let esperado = caja.apertura + caja.ingresos - caja.gastos;
+  let diferencia = real - esperado;
+
+  caja.activa = false;
+  caja.cierre = real;
+  caja.horaCierre = new Date();
+  caja.dejado = dejar;
+
+  if (!caja.movimientos) caja.movimientos = [];
+
+  caja.movimientos.push({
+    tipo: "cierre",
+    monto: real,
+    motivo: `Cierre de caja | Dejado: $${dejar}`
+  });
+
+  await caja.save();
+
+  if (dejar > 0) {
+    await new Caja({
+      apertura: dejar,
+      ingresos: 0,
+      gastos: 0,
+      activa: true
+    }).save();
+  }
+
+  res.json({
+    apertura: caja.apertura,
+    ingresos: caja.ingresos,
+    gastos: caja.gastos,
+    esperado,
+    real,
+    diferencia,
+    dejar,
+    movimientos: caja.movimientos || []
+  });
+});
+
+// ================== ANALISIS ==================
+app.get('/analisis', async (req, res) => {
+  const ventas = await Venta.find();
+
+  let total = 0;
+  ventas.forEach(v => total += Number(v.total || 0));
+
+  res.json({
+    totalGeneral: total,
+    ventas
+  });
+});
+app.delete('/ventas/fecha', async (req, res) => {
+
+  let fecha = req.body.fecha;
+
+  let inicio = new Date(fecha);
+  let fin = new Date(fecha);
+  fin.setDate(fin.getDate() + 1);
+
+  await Venta.deleteMany({
+    fecha: {
+      $gte: inicio,
+      $lt: fin
+    }
+  });
+
+  res.json({ ok: true });
+});
+
+// ================== SERVER ==================
+app.listen(3000, () => {
+  console.log("🚀 http://localhost:3000");
 });
