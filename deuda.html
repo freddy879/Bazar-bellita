@@ -103,6 +103,7 @@
     <div class="card">
       <input id="buscar" placeholder="Buscar por nombre o cédula">
       <button onclick="buscarCliente()">Buscar</button>
+      <button onclick="cargar()">♻ Recargar</button>
     </div>
 
     <div class="card">
@@ -148,18 +149,24 @@
 
 <script>
 
-const API = window.location.origin;
+const API = window.location.origin; // 🔥 clave para que funcione en cualquier host
 let deudas = [];
 
 // ================= CARGAR =================
 async function cargar() {
-  try{
+  try {
     const res = await fetch(API + '/deudas');
+
+    if(!res.ok){
+      throw new Error("Servidor respondió mal");
+    }
+
     deudas = await res.json();
     mostrar(deudas);
-  }catch(e){
-    console.error("Error conectando:", e);
-    alert("❌ No conecta con el servidor");
+
+  } catch (e) {
+    console.error("Error:", e);
+    alert("❌ No conecta con el servidor\n\nVerifica que esté encendido en puerto 3000");
   }
 }
 
@@ -169,24 +176,27 @@ async function agregar() {
   let total = parseFloat(monto.value);
   if (!total) return alert("Monto inválido");
 
-  const deuda = {
-    cliente: nombre.value + " " + apellido.value,
-    cedula: cedula.value || "SIN CÉDULA",
-    celular: celular.value || "",
-    direccion: direccion.value || "",
-    total,
-    meses: parseInt(meses.value) || 1,
-    pagado: 0
-  };
+  try{
+    await fetch(API + '/deudas', {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        cliente: nombre.value + " " + apellido.value,
+        cedula: cedula.value || "SIN CÉDULA",
+        celular: celular.value || "",
+        direccion: direccion.value || "",
+        total,
+        meses: parseInt(meses.value) || 1,
+        pagado: 0
+      })
+    });
 
-  await fetch(API + '/deudas', {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(deuda)
-  });
+    limpiar();
+    cargar();
 
-  limpiar();
-  cargar();
+  }catch(e){
+    alert("❌ Error al guardar");
+  }
 }
 
 // ================= MOSTRAR =================
