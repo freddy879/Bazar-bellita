@@ -162,6 +162,46 @@ async function cargar() {
   mostrar(deudas);
 }
 
+
+/ ================= AGREGAR (FIX DEFINITIVO) =================
+async function agregar(){
+
+  let nombreV = document.getElementById("nombre").value;
+  let apellidoV = document.getElementById("apellido").value;
+  let cedulaV = document.getElementById("cedula").value;
+  let celularV = document.getElementById("celular").value;
+  let direccionV = document.getElementById("direccion").value;
+  let totalV = parseFloat(document.getElementById("monto").value);
+
+  if(!totalV) return alert("Monto inválido");
+
+  try {
+
+    await fetch(API + '/deudas', {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        cliente: nombreV + " " + apellidoV,
+        cedula: cedulaV || "SIN CÉDULA",
+        celular: celularV || "",
+        direccion: direccionV || "",
+        total: totalV,
+        productos: [],
+        pagos: [],
+        pagado: 0
+      })
+    });
+
+    limpiar();
+    cargar();
+
+  } catch (err) {
+    console.log(err);
+    alert("❌ Error al guardar");
+  }
+}
+
+  
 // ================= MOSTRAR =================
 function mostrar(lista){
 
