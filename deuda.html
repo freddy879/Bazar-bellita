@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
   <title>Deudas - Bazar Bellita</title>
@@ -84,15 +84,14 @@
 
 <body>
 
-
 <div class="sidebar">
   <h2>FIVI</h2>
   <a href="index.html">💰 Venta</a>
   <a href="bodega.html">📦 Bodega</a>
   <a href="deuda.html">💸 Deudas</a>
-  <a href="analisis.html">📊 Análisis</a>
+  <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
-    <a href="cliente.html">👤 Clientes</a>
+  <a href="cliente.html">👤 Clientes</a>
 </div>
 
 <div class="main">
@@ -101,13 +100,11 @@
 
   <div class="contenido">
 
-    <!-- BUSCAR -->
     <div class="card">
       <input id="buscar" placeholder="Buscar por nombre o cédula">
       <button onclick="buscarCliente()">Buscar</button>
     </div>
 
-    <!-- NUEVA DEUDA -->
     <div class="card">
       <h3>➕ Nueva Deuda</h3>
 
@@ -115,6 +112,7 @@
       <input id="apellido" placeholder="Apellido"><br>
 
       <input id="cedula" placeholder="Cédula">
+      <input id="celular" placeholder="Celular">
       <input id="direccion" placeholder="Dirección"><br>
 
       <input id="monto" placeholder="Monto">
@@ -123,7 +121,6 @@
       <button onclick="agregar()">Guardar</button>
     </div>
 
-    <!-- TABLA -->
     <div class="card">
       <h3>📋 Deudas</h3>
 
@@ -132,6 +129,7 @@
           <tr>
             <th>Cliente</th>
             <th>Cédula</th>
+            <th>Celular</th>
             <th>Total</th>
             <th>Pagado</th>
             <th>Restante</th>
@@ -154,7 +152,7 @@ let deudas = [];
 
 // ================= CARGAR =================
 async function cargar() {
-  const res = await fetch('http://localhost:3000/deudas');
+  const res = await fetch('/deudas');
   deudas = await res.json();
   mostrar(deudas);
 }
@@ -168,13 +166,14 @@ async function agregar() {
   const deuda = {
     cliente: nombre.value + " " + apellido.value,
     cedula: cedula.value || "SIN CÉDULA",
+    celular: celular.value || "",
     direccion: direccion.value || "",
     total,
     meses: parseInt(meses.value) || 1,
     pagado: 0
   };
 
-  await fetch('http://localhost:3000/deudas', {
+  await fetch('/deudas', {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(deuda)
@@ -199,6 +198,7 @@ function mostrar(lista){
       <tr>
         <td>${d.cliente}</td>
         <td>${d.cedula}</td>
+        <td>${d.celular || "-"}</td>
         <td>$${d.total}</td>
         <td>$${d.pagado || 0}</td>
         <td>$${restante}</td>
@@ -206,6 +206,7 @@ function mostrar(lista){
         <td>
           <input id="abono${d._id}" placeholder="Abono" style="width:80px">
           <button onclick="abonar('${d._id}')">💰</button>
+          <button onclick="editar('${d._id}','${d.cliente}','${d.cedula}','${d.celular || ""}')">✏️</button>
           <button onclick="eliminar('${d._id}')">🗑</button>
         </td>
       </tr>
@@ -221,68 +222,40 @@ async function abonar(id){
 
   if(!monto) return alert("Monto inválido");
 
-  const res = await fetch('http://localhost:3000/deudas/pagar', {
+  await fetch('/deudas/pagar', {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ id, monto })
   });
 
-  const data = await res.json();
-
   input.value = "";
-  await cargar();
+  cargar();
+}
 
-  // ================= HISTORIAL =================
-  let historial = "";
+// ================= EDITAR =================
+async function editar(id, nombreActual, cedulaActual, celularActual){
 
-  if (data.pagos && data.pagos.length > 0) {
-    historial = data.pagos.map((p, i) => {
-      return `
-        <tr>
-          <td>${i + 1}</td>
-          <td>$${p.monto}</td>
-          <td>${new Date(p.fecha).toLocaleString()}</td>
-        </tr>
-      `;
-    }).join("");
-  }
+  let nuevoNombre = prompt("Nuevo nombre:", nombreActual);
+  if(nuevoNombre === null) return;
 
-  let recibo = `
-    <div style="font-family:Arial;padding:20px">
-      <h2>🧾 BAZAR BELLITA</h2>
-      <hr>
+  let nuevaCedula = prompt("Nueva cédula:", cedulaActual);
+  if(nuevaCedula === null) return;
 
-      <p><b>Cliente:</b> ${data.cliente}</p>
-      <p><b>Total deuda:</b> $${data.total}</p>
-      <p><b>Restante:</b> $${data.restante}</p>
+  let nuevoCelular = prompt("Nuevo celular:", celularActual);
+  if(nuevoCelular === null) return;
 
-      <hr>
+  await fetch('/deudas/editar', {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      id,
+      cliente: nuevoNombre,
+      cedula: nuevaCedula,
+      celular: nuevoCelular
+    })
+  });
 
-      <h3>📜 Historial de pagos</h3>
-
-      <table border="1" width="100%" style="border-collapse:collapse;text-align:center">
-        <tr>
-          <th>#</th>
-          <th>Monto</th>
-          <th>Fecha</th>
-        </tr>
-
-        ${historial || "<tr><td colspan='3'>Sin pagos aún</td></tr>"}
-      </table>
-
-      <hr>
-
-      <p><b>Último pago:</b> $${data.monto}</p>
-      <p><b>Fecha:</b> ${new Date().toLocaleString()}</p>
-
-      <center>✔ Pago registrado</center>
-    </div>
-  `;
-
-  let w = window.open('', '', 'width=400,height=600');
-  w.document.write(recibo);
-  w.document.close();
-  w.print();
+  cargar();
 }
 
 // ================= ELIMINAR =================
@@ -294,7 +267,7 @@ async function eliminar(id){
     return alert("Incorrecta");
   }
 
-  await fetch(`http://localhost:3000/deudas/${id}`, {
+  await fetch(`/deudas/${id}`, {
     method: "DELETE"
   });
 
@@ -304,11 +277,11 @@ async function eliminar(id){
 // ================= BUSCAR =================
 function buscarCliente(){
 
-  let t = buscar.value.toLowerCase();
+  let t = document.getElementById("buscar").value.toLowerCase();
 
   let f = deudas.filter(d =>
-    d.cliente.toLowerCase().includes(t) ||
-    d.cedula.includes(t)
+    (d.cliente || "").toLowerCase().includes(t) ||
+    (d.cedula || "").includes(t)
   );
 
   mostrar(f);
@@ -319,6 +292,7 @@ function limpiar(){
   nombre.value="";
   apellido.value="";
   cedula.value="";
+  celular.value="";
   direccion.value="";
   monto.value="";
   meses.value="";
