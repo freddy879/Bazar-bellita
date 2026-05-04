@@ -186,7 +186,7 @@ async function guardar() {
     stock: Number(stock.value)
   };
 
-  await fetch('http://localhost:3000/productos', {
+  await fetch('https://bazar-bellita.onrender.com', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(data)
@@ -219,7 +219,7 @@ async function editarPrecio(id, precioActual){
 
   if (!nuevo || nuevo <= 0) return;
 
-  await fetch(`http://localhost:3000/productos/${id}`, {
+  await fetch(`https://bazar-bellita.onrender.com/${id}`, {
     method: "PUT",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({ precioVenta: nuevo })
@@ -238,7 +238,7 @@ async function eliminar(id){
     return;
   }
 
-  await fetch(`http://localhost:3000/productos/${id}`,{
+  await fetch(`https://bazar-bellita.onrender.com/${id}`,{
     method:'DELETE'
   });
 
