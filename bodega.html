@@ -84,7 +84,6 @@
 
 <body>
 
-
 <div class="sidebar">
   <h2>FIVI</h2>
   <a href="index.html">💰 Venta</a>
@@ -92,9 +91,8 @@
   <a href="deuda.html">💸 Deudas</a>
   <a href="analisis.html">📊 Análisis</a>
   <a href="caja.html">💵 Caja</a>
-    <a href="cliente.html">👤 Clientes</a>
+  <a href="cliente.html">👤 Clientes</a>
 </div>
-
 
 <div class="main">
 
@@ -140,12 +138,13 @@
 
 <script>
 
+const API = "https://bazar-bellita.onrender.com";
 const PASSWORD = "bellita123";
 let productos = [];
 
 // ================= CARGAR =================
 async function cargar() {
-  const res = await fetch('http://localhost:3000/productos');
+  const res = await fetch(`${API}/productos`);
   const data = await res.json().catch(()=>[]);
 
   productos = Array.isArray(data) ? data : [];
@@ -186,7 +185,7 @@ async function guardar() {
     stock: Number(stock.value)
   };
 
-  await fetch('https://bazar-bellita.onrender.com', {
+  await fetch(`${API}/productos`, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(data)
@@ -203,7 +202,7 @@ async function agregarStock(id){
 
   if (!cantidad || cantidad <= 0) return alert("Cantidad inválida");
 
-  await fetch(`http://localhost:3000/productos/agregar/${id}`, {
+  await fetch(`${API}/productos/agregar/${id}`, {
     method: "PUT",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({ cantidad })
@@ -219,7 +218,7 @@ async function editarPrecio(id, precioActual){
 
   if (!nuevo || nuevo <= 0) return;
 
-  await fetch(`https://bazar-bellita.onrender.com/${id}`, {
+  await fetch(`${API}/productos/${id}`, {
     method: "PUT",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({ precioVenta: nuevo })
@@ -238,7 +237,7 @@ async function eliminar(id){
     return;
   }
 
-  await fetch(`https://bazar-bellita.onrender.com/${id}`,{
+  await fetch(`${API}/productos/${id}`,{
     method:'DELETE'
   });
 
