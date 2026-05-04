@@ -136,36 +136,41 @@
 
 <script>
 
-const API = window.location.origin;
+const API = "https://bazar-bellita.onrender.com";
 const PASSWORD = "bellita123";
 let productos = [];
 
 // ================= CARGAR =================
 async function cargar() {
-  const res = await fetch(API + '/productos');
-  const data = await res.json().catch(()=>[]);
+  try{
+    const res = await fetch(API + '/productos');
+    const data = await res.json();
 
-  productos = Array.isArray(data) ? data : [];
+    productos = Array.isArray(data) ? data : [];
 
-  const tabla = document.getElementById('tabla');
-  tabla.innerHTML = '';
+    const tabla = document.getElementById('tabla');
+    tabla.innerHTML = '';
 
-  productos.forEach(p => {
-    tabla.innerHTML += `
-      <tr>
-        <td>${p.codigo || '-'}</td>
-        <td>${p.nombre}</td>
-        <td>$${p.precioCompra}</td>
-        <td>$${p.precioVenta}</td>
-        <td>${p.stock}</td>
-        <td>
-          <button onclick="agregarStock('${p._id}')">➕ Stock</button>
-          <button onclick="editarPrecio('${p._id}', ${p.precioVenta})">💲 Precio</button>
-          <button onclick="eliminar('${p._id}')">🗑️</button>
-        </td>
-      </tr>
-    `;
-  });
+    productos.forEach(p => {
+      tabla.innerHTML += `
+        <tr>
+          <td>${p.codigo || '-'}</td>
+          <td>${p.nombre}</td>
+          <td>$${p.precioCompra}</td>
+          <td>$${p.precioVenta}</td>
+          <td>${p.stock}</td>
+          <td>
+            <button onclick="agregarStock('${p._id}')">➕</button>
+            <button onclick="editarPrecio('${p._id}', ${p.precioVenta})">💲</button>
+            <button onclick="eliminar('${p._id}')">🗑️</button>
+          </td>
+        </tr>
+      `;
+    });
+
+  }catch(e){
+    alert("❌ No conecta con el servidor");
+  }
 }
 
 // ================= GUARDAR =================
@@ -194,9 +199,9 @@ async function guardar() {
 // ================= STOCK =================
 async function agregarStock(id){
 
-  let cantidad = parseInt(prompt("¿Cuánto deseas agregar al stock?"));
+  let cantidad = parseInt(prompt("Agregar stock"));
 
-  if (!cantidad || cantidad <= 0) return alert("Cantidad inválida");
+  if (!cantidad || cantidad <= 0) return;
 
   await fetch(API + `/productos/agregar/${id}`, {
     method: "PUT",
@@ -226,11 +231,10 @@ async function editarPrecio(id, precioActual){
 // ================= ELIMINAR =================
 async function eliminar(id){
 
-  let pass = prompt("🔐 contraseña");
+  let pass = prompt("Contraseña");
 
   if(pass !== PASSWORD){
-    alert("❌ Incorrecta");
-    return;
+    return alert("Incorrecta");
   }
 
   await fetch(API + `/productos/${id}`,{
@@ -249,12 +253,7 @@ function limpiar(){
   stock.value="";
 }
 
-cargar();
-
-</script>
-
-</body>
-</html>
+// ================= INICIO =================
 cargar();
 
 </script>
