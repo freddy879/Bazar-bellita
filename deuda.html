@@ -155,14 +155,12 @@ const API = location.hostname === "localhost"
 
 let deudas = [];
 
-// ================= CARGAR =================
 async function cargar() {
   const res = await fetch(API + '/deudas');
   deudas = await res.json();
   mostrar(deudas);
 }
 
-// ================= AGREGAR =================
 async function agregar(){
 
   let nombreV = document.getElementById("nombre").value;
@@ -174,35 +172,25 @@ async function agregar(){
 
   if(!totalV) return alert("Monto inválido");
 
-  try {
+  await fetch(API + '/deudas', {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      cliente: nombreV + " " + apellidoV,
+      cedula: cedulaV || "SIN CÉDULA",
+      celular: celularV || "",
+      direccion: direccionV || "",
+      total: totalV,
+      productos: [],
+      pagos: [],
+      pagado: 0
+    })
+  });
 
-    const res = await fetch(API + '/deudas', {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        cliente: nombreV + " " + apellidoV,
-        cedula: cedulaV || "SIN CÉDULA",
-        celular: celularV || "",
-        direccion: direccionV || "",
-        total: totalV,
-        productos: [],
-        pagos: [],
-        pagado: 0
-      })
-    });
-
-    if(!res.ok) throw new Error("Error en servidor");
-
-    limpiar();
-    cargar();
-
-  } catch (err) {
-    console.log(err);
-    alert("❌ Error al guardar (revisa backend)");
-  }
+  limpiar();
+  cargar();
 }
 
-// ================= MOSTRAR =================
 function mostrar(lista){
 
   let tabla = document.getElementById("tabla");
@@ -233,26 +221,22 @@ function mostrar(lista){
   });
 }
 
-// ================= ELIMINAR =================
 async function eliminar(id){
 
   let pass = prompt("Contraseña");
+  if(pass !== "bellita123") return alert("Incorrecta");
 
-  if(pass !== "bellita123"){
-    return alert("Incorrecta");
-  }
-
-  await fetch(`${API}/deudas/${id}`, {
-    method: "DELETE"
-  });
-
+  await fetch(`${API}/deudas/${id}`, { method: "DELETE" });
   cargar();
 }
 
-// ================= VER =================
-function ver(id){
+// 🔥 AQUÍ ESTÁ EL ARREGLO REAL (FACTURA SIEMPRE ACTUALIZADA)
+async function ver(id){
 
-  let d = deudas.find(x => x._id === id);
+  const res = await fetch(API + '/deudas');
+  const data = await res.json();
+
+  let d = data.find(x => x._id === id);
 
   if(!d) return alert("No encontrado");
 
@@ -286,7 +270,6 @@ Celular: ${d.celular || "-"}<br><br>
   w.document.write(html);
 }
 
-// ================= ABONAR =================
 async function abonar(id){
 
   let input = document.getElementById(`abono${id}`);
@@ -304,7 +287,6 @@ async function abonar(id){
   cargar();
 }
 
-// ================= BUSCAR =================
 function buscarCliente(){
 
   let t = document.getElementById("buscar").value.toLowerCase();
@@ -315,7 +297,6 @@ function buscarCliente(){
   ));
 }
 
-// ================= LIMPIAR =================
 function limpiar(){
   document.getElementById("nombre").value = "";
   document.getElementById("apellido").value = "";
