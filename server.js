@@ -331,6 +331,9 @@ app.get('/analisis', async (req, res) => {
 });
 
 // ================== SERVER ==================
-app.listen(3000, () => {
-  console.log("🚀 http://localhost:3000");
+// ================== SERVER ==================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("🚀 http://localhost:" + PORT);
 });
