@@ -293,13 +293,14 @@ app.post('/deudas/pagar', async (req, res) => {
     return res.json({ error: "Monto inválido" });
   }
 
-  let restante = deuda.total - deuda.pagado;
+  let restante = (deuda.total || 0) - (deuda.pagado || 0);
 
   if (monto > restante) {
     return res.json({ error: "No puedes pagar más de la deuda" });
   }
 
-  deuda.pagado += monto;
+  // ================== ACTUALIZAR PAGO ==================
+  deuda.pagado = (deuda.pagado || 0) + monto;
 
   deuda.pagos.push({
     monto,
@@ -308,12 +309,14 @@ app.post('/deudas/pagar', async (req, res) => {
 
   await deuda.save();
 
+  // ================== CAJA ==================
   let caja = await Caja.findOne({ activa: true });
 
   if (caja) {
     caja.ingresos += monto;
 
     if (!caja.movimientos) caja.movimientos = [];
+
     caja.movimientos.push({
       tipo: "ingreso",
       monto,
@@ -323,17 +326,24 @@ app.post('/deudas/pagar', async (req, res) => {
     await caja.save();
   }
 
+  // ================== RESPUESTA COMPLETA (IMPORTANTE) ==================
   res.json({
-    cliente: deuda.cliente,
-    celular: deuda.celular || "", // ✅ FIX
+    _id: deuda._id,
+
+    cliente: deuda.cliente || "",
+    cedula: deuda.cedula || "",
+    celular: deuda.celular || "",
+
+    total: deuda.total || 0,
+    pagado: deuda.pagado || 0,
+    restante: (deuda.total || 0) - (deuda.pagado || 0),
+
     monto,
-    total: deuda.total,
-    restante: deuda.total - deuda.pagado,
-    pagos: deuda.pagos || [],
-    productos: deuda.productos || []
+
+    productos: deuda.productos || [],
+    pagos: deuda.pagos || []
   });
 });
-
 // ================== CAJA ==================
 app.post('/caja/abrir', async (req, res) => {
   let monto = Number(req.body.monto);
