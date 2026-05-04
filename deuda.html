@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
 <head>
   <title>Deudas - Bazar Bellita</title>
@@ -148,12 +148,13 @@
 
 <script>
 
+const API = window.location.origin;
 let deudas = [];
 
 // ================= CARGAR =================
 async function cargar() {
-  const res = await fetch('/deudas');
-  deudas = await res.json();
+  const res = await fetch(API + '/deudas');
+  deudas = await res.json().catch(()=>[]);
   mostrar(deudas);
 }
 
@@ -173,7 +174,7 @@ async function agregar() {
     pagado: 0
   };
 
-  await fetch('/deudas', {
+  await fetch(API + '/deudas', {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(deuda)
@@ -222,7 +223,7 @@ async function abonar(id){
 
   if(!monto) return alert("Monto inválido");
 
-  await fetch('/deudas/pagar', {
+  await fetch(API + '/deudas/pagar', {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ id, monto })
@@ -244,7 +245,7 @@ async function editar(id, nombreActual, cedulaActual, celularActual){
   let nuevoCelular = prompt("Nuevo celular:", celularActual);
   if(nuevoCelular === null) return;
 
-  await fetch('/deudas/editar', {
+  await fetch(API + '/deudas/editar', {
     method: "PUT",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
@@ -267,7 +268,7 @@ async function eliminar(id){
     return alert("Incorrecta");
   }
 
-  await fetch(`/deudas/${id}`, {
+  await fetch(API + `/deudas/${id}`, {
     method: "DELETE"
   });
 
