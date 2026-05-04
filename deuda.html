@@ -153,14 +153,17 @@ const API = location.hostname === "localhost"
   ? "http://localhost:3000"
   : "https://bazar-bellita.onrender.com";
 
+
 let deudas = [];
 
+// ================= CARGAR =================
 async function cargar() {
   const res = await fetch(API + '/deudas');
   deudas = await res.json();
   mostrar(deudas);
 }
 
+// ================= AGREGAR =================
 async function agregar(){
 
   let nombreV = document.getElementById("nombre").value;
@@ -177,7 +180,7 @@ async function agregar(){
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       cliente: nombreV + " " + apellidoV,
-      cedula: cedulaV || "SIN CÉDULA",
+      cedula: cedulaV || "-",
       celular: celularV || "",
       direccion: direccionV || "",
       total: totalV,
@@ -191,6 +194,7 @@ async function agregar(){
   cargar();
 }
 
+// ================= MOSTRAR =================
 function mostrar(lista){
 
   let tabla = document.getElementById("tabla");
@@ -198,117 +202,167 @@ function mostrar(lista){
 
   lista.forEach(d => {
 
-    let restante = d.total - (d.pagado || 0);
+    let pagado = d.pagado || 0;
+    let restante = d.total - pagado;
     let estado = restante <= 0 ? "Pagado ✅" : "Pendiente";
 
     tabla.innerHTML += `
       <tr>
         <td>${d.cliente}</td>
-        <td>${d.cedula}</td>
+        <td>${d.cedula || "-"}</td>
         <td>${d.celular || "-"}</td>
         <td>$${d.total}</td>
-        <td>$${d.pagado || 0}</td>
+        <td>$${pagado}</td>
         <td>$${restante}</td>
         <td>${estado}</td>
-        <td>
-          <input id="abono${d._id}" placeholder="Abono" style="width:80px">
-          <button onclick="abonar('${d._id}')">💰</button>
-          <button onclick="ver('${d._id}')">👁️</button>
-          <button onclick="eliminar('${d._id}')">🗑</button>
-        </td>
+     <td>
+      <input id="abono${d._id}" style="width:80px">
+        <button onclick="abonar('${d._id}')">💰</button>
+        <button onclick="ver('${d._id}')">👁️</button>
+        <button onclick="eliminar('${d._id}')">🗑</button>
+    </td>
       </tr>
     `;
   });
 }
 
-async function eliminar(id){
-
-  let pass = prompt("Contraseña");
-  if(pass !== "bellita123") return alert("Incorrecta");
-
-  await fetch(`${API}/deudas/${id}`, { method: "DELETE" });
-  cargar();
-}
-
-// 🔥 AQUÍ ESTÁ EL ARREGLO REAL (FACTURA SIEMPRE ACTUALIZADA)
-async function ver(id){
-
-  const res = await fetch(API + '/deudas');
-  const data = await res.json();
-
-  let d = data.find(x => x._id === id);
-
-  if(!d) return alert("No encontrado");
-
-  let html = `
-🧾 DETALLE DEUDA<br><br>
-
-Cliente: ${d.cliente}<br><br>
-Cédula: ${d.cedula}<br><br>
-Celular: ${d.celular || "-"}<br><br>
-
-📦 Productos<br>
-`;
-
-  (d.productos || []).forEach(p=>{
-    html += `${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}<br>`;
-  });
-
-  html += `<br>💰 Pagos<br>`;
-
-  (d.pagos || []).forEach(p=>{
-    html += `$${p.monto} - ${new Date(p.fecha).toLocaleString()}<br>`;
-  });
-
-  html += `
-<br>Total: $${d.total}
-<br>Pagado: $${d.pagado}
-<br>Restante: $${d.total - d.pagado}
-`;
-
-  let w = window.open("", "", "width=400,height=600");
-  w.document.write(html);
-}
-
+// ================= ABONAR =================
+// ================= ABONAR =================
 async function abonar(id){
 
   let input = document.getElementById(`abono${id}`);
-  let monto = parseFloat(input.value);
+  let monto = Number(input.value);
 
-  if(!monto) return alert("Monto inválido");
+  if(!monto || monto <= 0) return alert("Monto inválido");
 
-  await fetch(API + '/deudas/pagar', {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ id, monto })
-  });
+  try {
 
-  input.value = "";
-  cargar();
+    const res = await fetch(API + '/deudas/pagar', {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ id, monto })
+    });
+
+    const data = await res.json();
+
+    if(data.error) return alert(data.error);
+
+    input.value = "";
+
+    // 🔥 usar respuesta del backend directamente
+    abrirRecibo(data, monto);
+
+    // actualizar tabla
+    cargar();
+
+  } catch (err) {
+    console.log(err);
+    alert("Error al abonar la deuda");
+  }
 }
 
-function buscarCliente(){
 
-  let t = document.getElementById("buscar").value.toLowerCase();
+// ================= RECIBO =================
+function abrirRecibo(d, monto){
 
-  mostrar(deudas.filter(d =>
-    (d.cliente || "").toLowerCase().includes(t) ||
-    (d.cedula || "").includes(t)
-  ));
+  let win = window.open("", "", "width=300,height=600");
+
+  let productos = (d.productos && d.productos.length)
+    ? d.productos.map(p =>
+        `${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}<br>`
+      ).join("")
+    : "Sin productos registrados<br>";
+
+  let pagos = (d.pagos && d.pagos.length)
+    ? d.pagos.map(p =>
+        `$${p.monto} - ${new Date(p.fecha).toLocaleString()}<br>`
+      ).join("")
+    : "Sin pagos<br>";
+
+  let pagado = d.pagado || 0;
+  let total = d.total || 0;
+  let restante = d.restante ?? (total - pagado);
+
+  win.document.write(`
+  <html>
+  <head>
+    <style>
+      body{
+        font-family: monospace;
+        width: 280px;
+        margin:auto;
+        padding:10px;
+      }
+      h2{text-align:center;}
+      .line{border-top:1px dashed #000; margin:8px 0;}
+    </style>
+  </head>
+
+  <body onload="window.print()">
+
+    <h2>🧾 DETALLE DEUDA</h2>
+
+    <div class="line"></div>
+
+    Cliente: ${d.cliente || "-"}<br>
+    Cédula: ${d.cedula || "-"}<br>
+    Celular: ${d.celular || "-"}<br>
+
+    <div class="line"></div>
+
+    📦 Productos<br>
+    ${productos}
+
+    <div class="line"></div>
+
+    💰 Pagos<br>
+    ${pagos}
+
+    <div class="line"></div>
+
+    💵 Abono: $${monto}<br><br>
+
+    Total: $${total}<br>
+    Pagado: $${pagado}<br>
+    Restante: $${restante}
+
+  </body>
+  </html>
+  `);
+
+  win.document.close();
+}
+// ================= VER =================
+function ver(id){
+
+  let d = deudas.find(x => x._id === id);
+
+  let w = window.open("", "", "width=400,height=600");
+
+  w.document.write(`
+    🧾 DETALLE DEUDA<br><br>
+    Cliente: ${d.cliente}<br>
+    Cédula: ${d.cedula}<br>
+    Celular: ${d.celular}<br><br>
+    Total: $${d.total}<br>
+    Pagado: $${d.pagado}<br>
+    Restante: $${d.total - d.pagado}
+  `);
+
+  w.document.close();
 }
 
+// ================= LIMPIAR =================
 function limpiar(){
-  document.getElementById("nombre").value = "";
-  document.getElementById("apellido").value = "";
-  document.getElementById("cedula").value = "";
-  document.getElementById("celular").value = "";
-  document.getElementById("direccion").value = "";
-  document.getElementById("monto").value = "";
-  document.getElementById("meses").value = "";
+  document.getElementById("nombre").value="";
+  document.getElementById("apellido").value="";
+  document.getElementById("cedula").value="";
+  document.getElementById("celular").value="";
+  document.getElementById("direccion").value="";
+  document.getElementById("monto").value="";
 }
 
 cargar();
-
 </script>
 
 </body>
