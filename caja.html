@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>  
 <html>
 <head>
   <title>Caja - Bazar Bellita</title>
@@ -90,20 +90,46 @@
       color: green;
       font-weight: bold;
     }
+
+    /* 🧾 IMPRESIÓN TÉRMICA REAL */
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        width: 80mm;
+        font-family: monospace;
+        font-size: 12px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .sidebar,
+      button {
+        display: none !important;
+      }
+
+      .card {
+        box-shadow: none;
+        border: none;
+        padding: 5px;
+      }
+    }
   </style>
 </head>
 
 <body>
-
 
 <div class="sidebar">
   <h2>FIVI</h2>
   <a href="index.html">💰 Venta</a>
   <a href="bodega.html">📦 Bodega</a>
   <a href="deuda.html">💸 Deudas</a>
-  <a href="analisis.html">📊 Análisis</a>
+  <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
-    <a href="cliente.html">👤 Clientes</a>
+  <a href="cliente.html">👤 Clientes</a>
 </div>
 
 <div class="main">
@@ -112,14 +138,12 @@
 
   <div class="contenido">
 
-    <!-- ABRIR -->
     <div class="card">
       <h3>🟢 Abrir Caja</h3>
       <input id="monto" type="number" placeholder="Monto inicial">
       <button onclick="abrir()">Abrir</button>
     </div>
 
-    <!-- ESTADO -->
     <div class="card">
       <h3>📊 Estado</h3>
       <p>Apertura: $<span id="apertura">0</span></p>
@@ -129,14 +153,13 @@
       <button onclick="cargar()">Actualizar</button>
     </div>
 
-    <!-- GASTO -->
     <div class="card">
       <h3>💸 Gasto</h3>
       <input id="gasto" type="number" placeholder="Monto">
+      <input id="motivo" type="text" placeholder="Motivo">
       <button onclick="registrarGasto()">Registrar</button>
     </div>
 
-    <!-- CERRAR -->
     <div class="card">
       <h3>🔴 Cerrar Caja</h3>
       <button onclick="cerrar()">Cerrar Caja</button>
@@ -149,11 +172,10 @@
 
 // ================== ABRIR ==================
 async function abrir(){
-
   let monto = Number(document.getElementById('monto').value);
   if(!monto || monto <= 0) return alert("Monto inválido");
 
-  let res = await fetch('http://localhost:3000/caja/abrir',{
+  let res = await fetch('/caja/abrir',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ monto })
@@ -164,40 +186,39 @@ async function abrir(){
   alert(data.error || "Caja abierta ✔");
 
   document.getElementById('monto').value = "";
-
   cargar();
 }
 
 // ================== CARGAR ==================
 async function cargar(){
-
-  let res = await fetch('http://localhost:3000/caja');
+  let res = await fetch('/caja');
   let data = await res.json();
 
   if(!data){
-    document.getElementById('apertura').innerText = 0;
-    document.getElementById('ingresos').innerText = 0;
-    document.getElementById('gastos').innerText = 0;
-    document.getElementById('saldo').innerText = 0;
+    apertura.innerText = 0;
+    ingresos.innerText = 0;
+    gastos.innerText = 0;
+    saldo.innerText = 0;
     return;
   }
 
-  document.getElementById('apertura').innerText = data.apertura || 0;
-  document.getElementById('ingresos').innerText = data.ingresos || 0;
-  document.getElementById('gastos').innerText = data.gastos || 0;
-  document.getElementById('saldo').innerText = data.saldo || 0;
+  apertura.innerText = data.apertura || 0;
+  ingresos.innerText = data.ingresos || 0;
+  gastos.innerText = data.gastos || 0;
+  saldo.innerText = data.saldo || 0;
 }
 
 // ================== GASTO ==================
 async function registrarGasto(){
-
   let monto = Number(document.getElementById('gasto').value);
+  let motivo = document.getElementById('motivo').value || "Sin motivo";
+
   if(!monto || monto <= 0) return alert("Monto inválido");
 
-  let res = await fetch('http://localhost:3000/caja/gasto',{
+  let res = await fetch('/caja/gasto',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ monto })
+    body: JSON.stringify({ monto, motivo })
   });
 
   let data = await res.json();
@@ -205,34 +226,30 @@ async function registrarGasto(){
   alert(data.error || "Gasto registrado ✔");
 
   document.getElementById('gasto').value = "";
+  document.getElementById('motivo').value = "";
 
   cargar();
 }
 
-// ================== FACTURA ==================
+// ================== IMPRIMIR ==================
 function imprimirFactura(data){
 
-  // 🔥 abrir inmediatamente (esto evita bloqueo)
   let ventana = window.open("", "_blank", "width=400,height=600");
-
-  if (!ventana) {
-    alert("❌ Activa ventanas emergentes en el navegador");
-    return;
-  }
 
   ventana.document.write(`
     <html>
     <head>
       <title>Cierre Caja</title>
       <style>
-        body { font-family: Arial; padding: 20px; }
+        body { font-family: monospace; width: 80mm; padding: 10px; }
         h2 { text-align: center; }
         .linea { border-top: 1px dashed #000; margin: 10px 0; }
       </style>
     </head>
     <body>
 
-      <h2>📄 CIERRE DE CAJA</h2>
+      <h2>📄 CIERRE CAJA</h2>
+
       <div class="linea"></div>
 
       <p>Apertura: $${data.apertura}</p>
@@ -247,12 +264,14 @@ function imprimirFactura(data){
 
       <div class="linea"></div>
 
+      <p><b>Dejado: $${data.dejar ?? 0}</b></p>
+
+      <div class="linea"></div>
+
       <p>${new Date().toLocaleString()}</p>
 
       <script>
-        window.onload = function(){
-          window.print();
-        }
+        window.onload = () => window.print();
       <\/script>
 
     </body>
@@ -261,32 +280,33 @@ function imprimirFactura(data){
 
   ventana.document.close();
 }
+
 // ================== CERRAR ==================
 async function cerrar(){
 
   let montoReal = prompt("¿Cuánto dinero hay en caja?");
+  let dejar = prompt("¿Cuánto quieres dejar?");
 
-  if(!montoReal || isNaN(montoReal)){
-    return alert("Monto inválido");
-  }
+  if(!montoReal || isNaN(montoReal)) return alert("Monto inválido");
+  if(!dejar || isNaN(dejar)) dejar = 0;
 
-  let res = await fetch('http://localhost:3000/caja/cerrar',{
+  let res = await fetch('/caja/cerrar',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ montoReal })
+    body: JSON.stringify({ 
+      montoReal: Number(montoReal),
+      dejar: Number(dejar)
+    })
   });
 
   let data = await res.json();
 
-  if(data.error){
-    alert(data.error);
-  } else {
+  if(!data.error){
     imprimirFactura(data);
     alert("Caja cerrada ✔");
+  } else {
+    alert(data.error);
   }
-
-  document.getElementById('monto').value = "";
-  document.getElementById('gasto').value = "";
 
   cargar();
 }
