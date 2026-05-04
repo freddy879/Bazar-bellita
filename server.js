@@ -1,4 +1,4 @@
-('dotenv').config();
+require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -15,26 +15,32 @@ console.log("USER:", process.env.MONGO_USER);
 console.log("DB:", process.env.MONGO_DB);
 
 // ================== MONGO ==================
-const user = process.env.MONGO_USER;
-const pass = encodeURIComponent(process.env.MONGO_PASS);
-const db = process.env.MONGO_DB;
+const mongoose = require('mongoose');
 
-const URI = `mongodb+srv://${user}:${pass}@cluster0.8otlbi7.mongodb.net/${db}?retryWrites=true&w=majority`;
+const options = {
+  serverSelectionTimeoutMS: 5000, // evita quedarse colgado mucho tiempo
+  maxPoolSize: 10,               // conexiones simultáneas (más estable)
+  minPoolSize: 2,                // mantiene conexión caliente
+  socketTimeoutMS: 45000,       // evita cortes rápidos
+  family: 4                     // fuerza IPv4 (evita errores raros en algunos hosts)
+};
 
-// 🔥 conexión optimizada (NO cambia lógica)
-mongoose.connect(URI, {
-  serverSelectionTimeoutMS: 5000,
-  maxPoolSize: 10,
-  autoIndex: false
-})
+mongoose.connect(URI, options)
 .then(() => console.log("✅ Mongo conectado"))
 .catch(err => console.log("❌ Error Mongo:", err.message));
 
-// 🔥 estado conexión estable
+// 🔥 eventos útiles (muy recomendado)
 mongoose.connection.on('connected', () => {
-  console.log("⚡ MongoDB listo y estable");
+  console.log("⚡ MongoDB conectado estable");
 });
 
+mongoose.connection.on('error', (err) => {
+  console.log("⚠️ Error Mongo:", err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log("⚠️ Mongo desconectado");
+});
 // ================== MODELOS ==================
 const Producto = mongoose.model('Producto', {
   nombre: String,
@@ -58,7 +64,7 @@ const Venta = mongoose.model('Venta', {
 const Deuda = mongoose.model('Deuda', {
   cliente: String,
   cedula: String,
-  celular: String, // ✅ FIX
+  celular: String,
   direccion: String,
   total: Number,
   pagado: { type: Number, default: 0 },
@@ -75,7 +81,7 @@ const Deuda = mongoose.model('Deuda', {
   fecha: { type: Date, default: Date.now }
 });
 
-// 🔥 SOLO AQUÍ ESTÁ EL CAMBIO
+// ================== CAJA ==================
 const Caja = mongoose.model('Caja', {
   fecha: { type: Date, default: Date.now },
   horaCierre: Date,
@@ -235,9 +241,13 @@ app.delete('/productos/:id', async (req, res) => {
 
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
+
+  // 🔥 GUARDAR VENTA
   await new Venta(req.body).save();
 
+  // ================= EFECTIVO =================
   if (req.body.tipo === "efectivo") {
+
     let caja = await Caja.findOne({ activa: true });
 
     if (caja) {
@@ -254,34 +264,52 @@ app.post('/ventas', async (req, res) => {
     }
   }
 
+  // ================= CREDITO =================
+  if (req.body.tipo === "credito") {
+
+    await new Deuda({
+      cliente: req.body.cliente,
+      cedula: req.body.cedula || "SIN CÉDULA",
+      celular: "",
+      direccion: "",
+      total: req.body.total,
+      pagado: 0,
+      productos: req.body.productos || [],
+      pagos: []
+    }).save();
+
+  }
+
   res.json({ ok: true });
 });
 
-// ================== DEUDAS ==================
+//-------Deuda-----------
 app.post('/deudas', async (req, res) => {
-  await new Deuda({
-    cliente: req.body.cliente,
-    cedula: req.body.cedula,
-    celular: req.body.celular || "",
-    direccion: req.body.direccion || "",
-    total: req.body.total || 0,
-    pagado: 0,
-    productos: req.body.productos || [],
-    pagos: []
-  }).save();
+  try {
 
-  res.json({ ok: true });
+  let nueva = new Deuda({
+  cliente: req.body.cliente || "",
+  cedula: req.body.cedula || "-",
+  celular: req.body.celular || "",
+  direccion: req.body.direccion || "",
+
+  total: Number(req.body.total || 0),
+  pagado: 0,
+
+  productos: req.body.productos || [],
+  pagos: [],
+  fecha: new Date()
 });
 
-app.get('/deudas', async (req, res) => {
-  res.json(await Deuda.find().sort({ fecha: -1 }));
-});
+await nueva.save();
 
-app.delete('/deudas/:id', async (req, res) => {
-  await Deuda.findByIdAndDelete(req.params.id);
-  res.json({ ok: true });
-});
+res.json(nueva);;
 
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al crear deuda" });
+  }
+});
 // ================== ABONAR ==================
 app.post('/deudas/pagar', async (req, res) => {
 
@@ -289,18 +317,13 @@ app.post('/deudas/pagar', async (req, res) => {
   if (!deuda) return res.json({ error: "Deuda no encontrada" });
 
   let monto = Number(req.body.monto);
-  if (!monto || monto <= 0) {
-    return res.json({ error: "Monto inválido" });
-  }
+  if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
 
-  let restante = (deuda.total || 0) - (deuda.pagado || 0);
+  let restante = deuda.total - deuda.pagado;
 
-  if (monto > restante) {
-    return res.json({ error: "No puedes pagar más de la deuda" });
-  }
+  if (monto > restante) return res.json({ error: "No puedes pagar más de la deuda" });
 
-  // ================== ACTUALIZAR PAGO ==================
-  deuda.pagado = (deuda.pagado || 0) + monto;
+  deuda.pagado += monto;
 
   deuda.pagos.push({
     monto,
@@ -309,14 +332,12 @@ app.post('/deudas/pagar', async (req, res) => {
 
   await deuda.save();
 
-  // ================== CAJA ==================
   let caja = await Caja.findOne({ activa: true });
 
   if (caja) {
     caja.ingresos += monto;
 
     if (!caja.movimientos) caja.movimientos = [];
-
     caja.movimientos.push({
       tipo: "ingreso",
       monto,
@@ -326,26 +347,20 @@ app.post('/deudas/pagar', async (req, res) => {
     await caja.save();
   }
 
-  // ================== RESPUESTA COMPLETA (IMPORTANTE) ==================
   res.json({
-    _id: deuda._id,
-
-    cliente: deuda.cliente || "",
-    cedula: deuda.cedula || "",
+    cliente: deuda.cliente,
     celular: deuda.celular || "",
-
-    total: deuda.total || 0,
-    pagado: deuda.pagado || 0,
-    restante: (deuda.total || 0) - (deuda.pagado || 0),
-
     monto,
-
-    productos: deuda.productos || [],
-    pagos: deuda.pagos || []
+    total: deuda.total,
+    restante: deuda.total - deuda.pagado,
+    pagos: deuda.pagos || [],
+    productos: deuda.productos || []
   });
 });
+
 // ================== CAJA ==================
 app.post('/caja/abrir', async (req, res) => {
+
   let monto = Number(req.body.monto);
 
   let abierta = await Caja.findOne({ activa: true });
@@ -412,6 +427,7 @@ app.post('/caja/gasto', async (req, res) => {
 
 // ================== CIERRE CAJA ==================
 app.post('/caja/cerrar', async (req, res) => {
+
   let caja = await Caja.findOne({ activa: true });
   if (!caja) return res.json({ error: "Caja no abierta" });
 
@@ -459,6 +475,7 @@ app.post('/caja/cerrar', async (req, res) => {
 
 // ================== ANALISIS ==================
 app.get('/analisis', async (req, res) => {
+
   const ventas = await Venta.find();
 
   let total = 0;
@@ -469,6 +486,7 @@ app.get('/analisis', async (req, res) => {
     ventas
   });
 });
+
 app.delete('/ventas/fecha', async (req, res) => {
 
   let fecha = req.body.fecha;
@@ -487,7 +505,10 @@ app.delete('/ventas/fecha', async (req, res) => {
   res.json({ ok: true });
 });
 
+
 // ================== SERVER ==================
-app.listen(3000, () => {
-  console.log("🚀 http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("🚀 http://localhost:" + PORT);
 });
