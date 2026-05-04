@@ -4,19 +4,81 @@
   <title>Deudas - Bazar Bellita</title>
 
   <style>
-    body { margin:0; font-family:'Segoe UI'; display:flex; background:#f5f6fa; }
-    .sidebar { width:220px; background:#1e272e; color:white; height:100vh; padding:20px; }
-    .sidebar a { display:block; padding:10px; color:white; text-decoration:none; border-radius:8px; margin-top:10px; }
-    .sidebar a:hover { background:#485460; }
-    .main { flex:1; }
-    .header { background:#ff3f34; color:white; padding:15px; font-size:20px; }
-    .contenido { padding:20px; }
-    .card { background:white; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0px 5px 15px rgba(0,0,0,0.1); }
-    input { padding:10px; margin:5px; border-radius:8px; border:1px solid #ccc; }
-    button { padding:10px; border:none; background:#ff3f34; color:white; border-radius:8px; cursor:pointer; }
-    button:hover { background:#e84118; }
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:10px; border-bottom:1px solid #ddd; text-align:center; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI';
+      display: flex;
+      background: #f5f6fa;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e272e;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 10px;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .sidebar a:hover {
+      background: #485460;
+    }
+
+    .main { flex: 1; }
+
+    .header {
+      background: #ff3f34;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+    }
+
+    .contenido { padding: 20px; }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      background: #ff3f34;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #e84118; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
   </style>
 </head>
 
@@ -39,12 +101,12 @@
   <div class="contenido">
 
     <div class="card">
-      <input id="buscar" placeholder="Buscar">
+      <input id="buscar" placeholder="Buscar por nombre o cédula">
       <button onclick="buscarCliente()">Buscar</button>
     </div>
 
     <div class="card">
-      <h3>Nueva Deuda</h3>
+      <h3>➕ Nueva Deuda</h3>
 
       <input id="nombre" placeholder="Nombre">
       <input id="apellido" placeholder="Apellido"><br>
@@ -60,7 +122,7 @@
     </div>
 
     <div class="card">
-      <h3>Lista</h3>
+      <h3>📋 Deudas</h3>
 
       <table>
         <thead>
@@ -86,21 +148,17 @@
 
 <script>
 
-const API = window.location.origin.includes("localhost")
-  ? "http://localhost:3000"
-  : "https://bazar-bellita.onrender.com";
-
+const API = window.location.origin;
 let deudas = [];
 
 // ================= CARGAR =================
 async function cargar() {
   try{
     const res = await fetch(API + '/deudas');
-    const data = await res.json();
-    deudas = Array.isArray(data) ? data : [];
+    deudas = await res.json();
     mostrar(deudas);
   }catch(e){
-    console.error(e);
+    console.error("Error conectando:", e);
     alert("❌ No conecta con el servidor");
   }
 }
@@ -111,18 +169,20 @@ async function agregar() {
   let total = parseFloat(monto.value);
   if (!total) return alert("Monto inválido");
 
+  const deuda = {
+    cliente: nombre.value + " " + apellido.value,
+    cedula: cedula.value || "SIN CÉDULA",
+    celular: celular.value || "",
+    direccion: direccion.value || "",
+    total,
+    meses: parseInt(meses.value) || 1,
+    pagado: 0
+  };
+
   await fetch(API + '/deudas', {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      cliente: nombre.value + " " + apellido.value,
-      cedula: cedula.value,
-      celular: celular.value,
-      direccion: direccion.value,
-      total,
-      meses: parseInt(meses.value) || 1,
-      pagado: 0
-    })
+    body: JSON.stringify(deuda)
   });
 
   limpiar();
@@ -132,17 +192,18 @@ async function agregar() {
 // ================= MOSTRAR =================
 function mostrar(lista){
 
+  let tabla = document.getElementById("tabla");
   tabla.innerHTML = "";
 
-  if(lista.length === 0){
-    tabla.innerHTML = "<tr><td colspan='8'>Sin deudas</td></tr>";
+  if(!lista || lista.length === 0){
+    tabla.innerHTML = `<tr><td colspan="8">No hay deudas</td></tr>`;
     return;
   }
 
   lista.forEach(d => {
 
     let restante = d.total - (d.pagado || 0);
-    let estado = restante <= 0 ? "Pagado" : "Pendiente";
+    let estado = restante <= 0 ? "Pagado ✅" : "Pendiente";
 
     tabla.innerHTML += `
       <tr>
@@ -154,8 +215,9 @@ function mostrar(lista){
         <td>$${restante}</td>
         <td>${estado}</td>
         <td>
-          <input id="abono${d._id}" style="width:80px">
+          <input id="abono${d._id}" placeholder="Abono" style="width:80px">
           <button onclick="abonar('${d._id}')">💰</button>
+          <button onclick="editar('${d._id}','${d.cliente}','${d.cedula}','${d.celular || ""}')">✏️</button>
           <button onclick="eliminar('${d._id}')">🗑</button>
         </td>
       </tr>
@@ -165,13 +227,43 @@ function mostrar(lista){
 
 // ================= ABONAR =================
 async function abonar(id){
-  let monto = parseFloat(document.getElementById(`abono${id}`).value);
-  if(!monto) return;
+
+  let input = document.getElementById(`abono${id}`);
+  let monto = parseFloat(input.value);
+
+  if(!monto) return alert("Monto inválido");
 
   await fetch(API + '/deudas/pagar', {
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ id, monto })
+  });
+
+  input.value = "";
+  cargar();
+}
+
+// ================= EDITAR =================
+async function editar(id, nombreActual, cedulaActual, celularActual){
+
+  let nuevoNombre = prompt("Nuevo nombre:", nombreActual);
+  if(nuevoNombre === null) return;
+
+  let nuevaCedula = prompt("Nueva cédula:", cedulaActual);
+  if(nuevaCedula === null) return;
+
+  let nuevoCelular = prompt("Nuevo celular:", celularActual);
+  if(nuevoCelular === null) return;
+
+  await fetch(API + '/deudas/editar', {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      id,
+      cliente: nuevoNombre,
+      cedula: nuevaCedula,
+      celular: nuevoCelular
+    })
   });
 
   cargar();
@@ -179,20 +271,30 @@ async function abonar(id){
 
 // ================= ELIMINAR =================
 async function eliminar(id){
-  let pass = prompt("Contraseña");
-  if(pass !== "bellita123") return;
 
-  await fetch(API + `/deudas/${id}`, { method:'DELETE' });
+  let pass = prompt("Contraseña");
+
+  if(pass !== "bellita123"){
+    return alert("Incorrecta");
+  }
+
+  await fetch(API + `/deudas/${id}`, {
+    method: "DELETE"
+  });
+
   cargar();
 }
 
 // ================= BUSCAR =================
 function buscarCliente(){
-  let t = buscar.value.toLowerCase();
+
+  let t = document.getElementById("buscar").value.toLowerCase();
+
   let f = deudas.filter(d =>
-    d.cliente.toLowerCase().includes(t) ||
-    d.cedula.includes(t)
+    (d.cliente || "").toLowerCase().includes(t) ||
+    (d.cedula || "").includes(t)
   );
+
   mostrar(f);
 }
 
