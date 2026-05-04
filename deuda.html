@@ -149,8 +149,10 @@
 
 <script>
 
-// 🔥 CAMBIA ESTO POR TU BACKEND REAL
-const API = "https://TU-BACKEND.onrender.com";
+// 🔥 AUTO DETECCIÓN LOCAL vs PRODUCCIÓN
+const API = location.hostname === "localhost"
+  ? "http://localhost:3000"
+  : "https://bazar-bellita.onrender.com";
 
 let deudas = [];
 
