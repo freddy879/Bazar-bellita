@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Caja - Bazar Bellita</title>
+  <title>Clientes - Bazar Bellita</title>
 
   <style>
     body { margin:0; font-family:'Segoe UI'; display:flex; background:#f5f6fa; }
     .sidebar { width:220px; background:#1e272e; color:white; height:100vh; padding:20px; }
     .sidebar a { display:block; color:white; padding:10px; text-decoration:none; margin-top:10px; border-radius:8px; }
     .sidebar a:hover { background:#485460; }
-    .main { flex:1; display:flex; flex-direction:column; }
+    .main { flex:1; }
     .header { background:#ff3f34; color:white; padding:15px; font-size:20px; }
-    .contenido { padding:20px; display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
-    .card { background:white; padding:20px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.08); }
-    input { padding:10px; margin-top:10px; width:100%; border-radius:6px; border:1px solid #ccc; }
-    button { margin-top:10px; width:100%; padding:10px; border:none; background:#ff3f34; color:white; border-radius:6px; cursor:pointer; }
+    .container { padding:20px; }
+    .card { background:white; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 3px 10px rgba(0,0,0,0.1); }
+    input { padding:10px; margin:5px; border-radius:8px; border:1px solid #ccc; width:200px; }
+    button { padding:10px; border:none; background:#ff3f34; color:white; border-radius:8px; cursor:pointer; }
     button:hover { background:#e84118; }
-    .saldo { font-size:22px; color:green; font-weight:bold; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:10px; border-bottom:1px solid #ddd; text-align:center; }
   </style>
 </head>
 
@@ -32,35 +33,36 @@
 </div>
 
 <div class="main">
-  <div class="header">🏦 Control de Caja</div>
 
-  <div class="contenido">
+  <div class="header">👤 Clientes</div>
+
+  <div class="container">
 
     <div class="card">
-      <h3>Abrir Caja</h3>
-      <input id="monto" type="number">
-      <button onclick="abrir()">Abrir</button>
+      <h3>Nuevo Cliente</h3>
+
+      <input id="nombre" placeholder="Nombre">
+      <input id="cedula" placeholder="Cédula">
+      <input id="telefono" placeholder="Teléfono">
+
+      <button onclick="guardar()">Guardar</button>
     </div>
 
     <div class="card">
-      <h3>Estado</h3>
-      <p>Apertura: $<span id="apertura">0</span></p>
-      <p>Ingresos: $<span id="ingresos">0</span></p>
-      <p>Gastos: $<span id="gastos">0</span></p>
-      <p class="saldo">Saldo: $<span id="saldo">0</span></p>
-      <button onclick="cargar()">Actualizar</button>
-    </div>
+      <h3>Lista</h3>
 
-    <div class="card">
-      <h3>Gasto</h3>
-      <input id="gasto" type="number">
-      <input id="motivo">
-      <button onclick="registrarGasto()">Registrar</button>
-    </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Cédula</th>
+            <th>Teléfono</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
 
-    <div class="card">
-      <h3>Cerrar Caja</h3>
-      <button onclick="cerrar()">Cerrar</button>
+        <tbody id="tabla"></tbody>
+      </table>
     </div>
 
   </div>
@@ -72,63 +74,94 @@ const API = window.location.origin.includes("localhost")
   ? "http://localhost:3000"
   : "https://bazar-bellita.onrender.com";
 
-// ================= ABRIR =================
-async function abrir(){
-  let monto = Number(montoInput.value);
-  if(!monto) return alert("Monto inválido");
-
-  let res = await fetch(API+'/caja/abrir',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ monto })
-  });
-
-  alert("Caja abierta");
-  cargar();
-}
-
 // ================= CARGAR =================
 async function cargar(){
-  let res = await fetch(API+'/caja');
-  let data = await res.json().catch(()=>null);
+  try{
+    const res = await fetch(API + '/clientes');
+    const data = await res.json();
 
-  if(!data) return;
+    tabla.innerHTML = "";
 
-  apertura.innerText = data.apertura || 0;
-  ingresos.innerText = data.ingresos || 0;
-  gastos.innerText = data.gastos || 0;
-  saldo.innerText = data.saldo || 0;
+    if(!data.length){
+      tabla.innerHTML = "<tr><td colspan='4'>Sin clientes</td></tr>";
+      return;
+    }
+
+    data.forEach(c => {
+      tabla.innerHTML += `
+        <tr>
+          <td>${c.nombre}</td>
+          <td>${c.cedula}</td>
+          <td>${c.telefono || "-"}</td>
+          <td>
+            <button onclick="editar('${c._id}','${c.nombre}','${c.cedula}','${c.telefono || ""}')">✏️</button>
+            <button onclick="eliminar('${c._id}')">🗑</button>
+          </td>
+        </tr>
+      `;
+    });
+
+  }catch(e){
+    console.error(e);
+    alert("❌ No conecta con el servidor");
+  }
 }
 
-// ================= GASTO =================
-async function registrarGasto(){
-  let monto = Number(gasto.value);
-  let motivo = document.getElementById('motivo').value;
+// ================= GUARDAR =================
+async function guardar(){
 
-  await fetch(API+'/caja/gasto',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ monto, motivo })
-  });
+  if(!nombre.value || !cedula.value){
+    return alert("Completa datos");
+  }
 
-  cargar();
-}
-
-// ================= CERRAR =================
-async function cerrar(){
-  let montoReal = prompt("Dinero real");
-  let dejar = prompt("Dejar");
-
-  await fetch(API+'/caja/cerrar',{
-    method:'POST',
+  await fetch(API + '/clientes', {
+    method:"POST",
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
-      montoReal:Number(montoReal),
-      dejar:Number(dejar||0)
+      nombre:nombre.value,
+      cedula:cedula.value,
+      telefono:telefono.value
     })
   });
 
-  alert("Caja cerrada");
+  nombre.value="";
+  cedula.value="";
+  telefono.value="";
+
+  cargar();
+}
+
+// ================= EDITAR =================
+async function editar(id,nombreActual,cedulaActual,telefonoActual){
+
+  let n = prompt("Nombre:",nombreActual);
+  if(n===null) return;
+
+  let c = prompt("Cédula:",cedulaActual);
+  if(c===null) return;
+
+  let t = prompt("Teléfono:",telefonoActual);
+  if(t===null) return;
+
+  await fetch(API + '/clientes/editar',{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id, nombre:n, cedula:c, telefono:t })
+  });
+
+  cargar();
+}
+
+// ================= ELIMINAR =================
+async function eliminar(id){
+
+  let pass = prompt("Contraseña");
+  if(pass !== "bellita123") return;
+
+  if(!confirm("¿Eliminar?")) return;
+
+  await fetch(API + `/clientes/${id}`,{ method:'DELETE' });
+
   cargar();
 }
 
