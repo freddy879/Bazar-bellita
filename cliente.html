@@ -141,11 +141,13 @@
 
 <script>
 
+const API = window.location.origin;
+
 // ================= CARGAR =================
 async function cargar(){
 
-  const res = await fetch('/clientes');
-  const data = await res.json();
+  const res = await fetch(API + '/clientes');
+  const data = await res.json().catch(()=>[]);
 
   let tabla = document.getElementById("tabla");
   tabla.innerHTML = "";
@@ -172,7 +174,7 @@ async function guardar(){
     return alert("Completa nombre y cédula");
   }
 
-  await fetch('/clientes', {
+  await fetch(API + '/clientes', {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -201,7 +203,7 @@ async function editar(id, nombreActual, cedulaActual, telefonoActual){
   let nuevoTelefono = prompt("Nuevo teléfono:", telefonoActual);
   if(nuevoTelefono === null) return;
 
-  await fetch('/clientes/editar', {
+  await fetch(API + '/clientes/editar', {
     method: "PUT",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -227,7 +229,7 @@ async function eliminar(id){
   let confirmar = confirm("⚠️ ¿Seguro que quieres eliminar este cliente?");
   if(!confirmar) return;
 
-  await fetch(`/clientes/${id}`, {
+  await fetch(API + `/clientes/${id}`, {
     method: "DELETE"
   });
 
