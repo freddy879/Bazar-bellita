@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
   <title>Análisis de Ventas</title>
@@ -62,6 +62,7 @@
       color: white;
       border-radius: 6px;
       cursor: pointer;
+      margin-top: 5px;
     }
 
     button:hover {
@@ -76,6 +77,14 @@
     li {
       margin: 5px 0;
     }
+
+    input[type="date"] {
+      padding: 8px;
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
   </style>
 </head>
 
@@ -86,7 +95,7 @@
   <a href="index.html">💰 Venta</a>
   <a href="bodega.html">📦 Bodega</a>
   <a href="deuda.html">💸 Deudas</a>
-  <a href="analisis.html">📊 Análisis</a>
+  <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
   <a href="cliente.html">👤 Clientes</a>
 </div>
@@ -103,8 +112,19 @@
     </div>
 
     <div class="card">
-      <h2>Historial de ventas</h2>
-      <button onclick="borrarHistorial()">🗑 Borrar historial</button>
+      <h2>🔎 Buscar por fecha</h2>
+
+      <input type="date" id="fechaFiltro">
+
+      <button onclick="filtrarFecha()">🔍 Buscar día</button>
+      <button onclick="cargar()">♻ Ver todo</button>
+      <button onclick="borrarDia()">🗑 Borrar este día</button>
+
+    </div>
+
+    <div class="card">
+      <h2>📊 Historial de ventas</h2>
+      <button onclick="borrarHistorial()">🗑 Borrar historial completo</button>
       <ul id="historial"></ul>
     </div>
 
@@ -114,51 +134,119 @@
 
 <script>
 
+// ================= CARGAR TODO =================
 async function cargar() {
 
-  try {
+  const res = await fetch('/analisis');
+  const data = await res.json().catch(()=>({ ventas: [], totalGeneral: 0 }));
 
-    const res = await fetch('https://bazar-bellita.onrender.com');
-    const data = await res.json();
+  document.getElementById('total').innerText =
+    "$" + (data.totalGeneral || 0).toFixed(2);
 
-    // ================= TOTAL =================
-    document.getElementById('total').innerText =
-      "$" + (data.totalGeneral || 0).toFixed(2);
+  mostrarVentas(data.ventas);
+}
 
-    // ================= HISTORIAL =================
-    let ul = document.getElementById('historial');
-    ul.innerHTML = "";
+// ================= MOSTRAR =================
+function mostrarVentas(ventas) {
 
-    if (!data.ventas || data.ventas.length === 0) {
-      ul.innerHTML = "<li>No hay ventas registradas</li>";
-      return;
-    }
+  let ul = document.getElementById('historial');
+  ul.innerHTML = "";
 
-    // Agrupar por fecha
-    let agrupado = {};
+  if (!ventas || ventas.length === 0) {
+    ul.innerHTML = "<li>No hay ventas registradas</li>";
+    return;
+  }
 
-    data.ventas.forEach(v => {
-      let fecha = new Date(v.fecha).toLocaleDateString();
+  let agrupado = {};
 
-      if (!agrupado[fecha]) agrupado[fecha] = [];
-      agrupado[fecha].push(v);
+  ventas.forEach(v => {
+
+    let fechaObj = new Date(v.fecha);
+    let fecha = fechaObj.toLocaleDateString();
+    let hora = fechaObj.toLocaleTimeString();
+
+    if (!agrupado[fecha]) agrupado[fecha] = [];
+    agrupado[fecha].push({ ...v, hora });
+  });
+
+  for (let fecha in agrupado) {
+
+    ul.innerHTML += `<h3>📅 ${fecha}</h3>`;
+
+    agrupado[fecha].forEach(v => {
+
+      let productosHTML = "";
+
+      if (v.productos && v.productos.length > 0) {
+        productosHTML = "<ul>";
+        v.productos.forEach(p => {
+          productosHTML += `
+            <li>📦 ${p.nombre} x${p.cantidad} - $${p.precio}</li>
+          `;
+        });
+        productosHTML += "</ul>";
+      } else {
+        productosHTML = "<i>Sin productos</i>";
+      }
+
+      ul.innerHTML += `
+        <li style="margin-bottom:12px;">
+          👤 <b>${v.cliente || "Sin nombre"}</b><br>
+          💰 Total: $${v.total || 0}<br>
+          🕒 Hora: ${v.hora}<br>
+          ${productosHTML}
+        </li>
+      `;
     });
-
-    for (let fecha in agrupado) {
-
-      ul.innerHTML += `<h3>📅 ${fecha}</h3>`;
-
-      agrupado[fecha].forEach(v => {
-        ul.innerHTML += `<li>${v.cliente || "Sin nombre"} - $${v.total || 0}</li>`;
-      });
-    }
-
-  } catch (err) {
-    console.log("Error cargando análisis:", err);
   }
 }
 
-// ================= BORRAR HISTORIAL =================
+// ================= FILTRAR POR FECHA =================
+async function filtrarFecha() {
+
+  let fecha = document.getElementById("fechaFiltro").value;
+
+  if (!fecha) return alert("Selecciona una fecha");
+
+  const res = await fetch('/analisis');
+  const data = await res.json();
+
+  let filtradas = data.ventas.filter(v => {
+    let f = new Date(v.fecha).toISOString().split("T")[0];
+    return f === fecha;
+  });
+
+  mostrarVentas(filtradas);
+}
+
+// ================= BORRAR DÍA =================
+async function borrarDia() {
+
+  let fecha = document.getElementById("fechaFiltro").value;
+
+  if (!fecha) return alert("Selecciona una fecha");
+
+  let pass = prompt("🔐 Contraseña:");
+
+  if (pass !== "bellita123") {
+    alert("❌ Incorrecta");
+    return;
+  }
+
+  let confirmar = confirm("⚠️ ¿Borrar este día?");
+  if (!confirmar) return;
+
+  await fetch('/ventas/fecha', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fecha })
+  });
+
+  alert("✅ Día eliminado");
+  cargar();
+}
+
+// ================= BORRAR TODO =================
 async function borrarHistorial() {
 
   let pass = prompt("🔐 Ingresa contraseña:");
@@ -171,7 +259,7 @@ async function borrarHistorial() {
   let confirmar = confirm("⚠️ ¿Seguro que quieres borrar TODO?");
   if (!confirmar) return;
 
-  await fetch('https://bazar-bellita.onrender.com', {
+  await fetch('/ventas', {
     method: 'DELETE'
   });
 
