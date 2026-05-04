@@ -134,10 +134,13 @@
 
 <script>
 
+// 🔥 URL BASE (AQUÍ ESTÁ LA CLAVE)
+const API = "https://bazar-bellita.onrender.com";
+
 // ================= CARGAR TODO =================
 async function cargar() {
 
-  const res = await fetch('/analisis');
+  const res = await fetch(API + '/analisis');
   const data = await res.json().catch(()=>({ ventas: [], totalGeneral: 0 }));
 
   document.getElementById('total').innerText =
@@ -208,7 +211,7 @@ async function filtrarFecha() {
 
   if (!fecha) return alert("Selecciona una fecha");
 
-  const res = await fetch('/analisis');
+  const res = await fetch(API + '/analisis');
   const data = await res.json();
 
   let filtradas = data.ventas.filter(v => {
@@ -236,7 +239,7 @@ async function borrarDia() {
   let confirmar = confirm("⚠️ ¿Borrar este día?");
   if (!confirmar) return;
 
-  await fetch('/ventas/fecha', {
+  await fetch(API + '/ventas/fecha', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fecha })
@@ -259,7 +262,7 @@ async function borrarHistorial() {
   let confirmar = confirm("⚠️ ¿Seguro que quieres borrar TODO?");
   if (!confirmar) return;
 
-  await fetch('/ventas', {
+  await fetch(API + '/ventas', {
     method: 'DELETE'
   });
 
