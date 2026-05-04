@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
 <head>
   <title>Ventas - Bazar Bellita</title>
@@ -34,18 +34,15 @@
       border-radius:10px;
     }
 
-    .pagoBtn {
-      display:flex;
-      gap:10px;
-      margin:5px;
-    }
+    .pagoBtn { display:flex; gap:10px; margin:5px; }
+    .pagoBtn button { flex:1; }
 
-    .pagoBtn button {
-      flex:1;
-    }
+    .activo { background:#2ed573 !important; }
 
-    .activo {
-      background:#2ed573 !important;
+    #buscar {
+      font-size: 18px;
+      border: 2px solid #ff3f34;
+      outline: none;
     }
   </style>
 </head>
@@ -57,24 +54,28 @@
   <a href="index.html">💰 Venta</a>
   <a href="bodega.html">📦 Bodega</a>
   <a href="deuda.html">💸 Deudas</a>
-  <a href="analisis.html">📊 Análisis</a>
+  <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
-    <a href="cliente.html">👤 Clientes</a>
+  <a href="cliente.html">👤 Clientes</a>
 </div>
 
 <div class="main">
-  <div class="header">🛒 Ventas</div>
+  <div class="header">🛒 Ventas POS</div>
 
   <div class="contenido">
 
-    <!-- PRODUCTOS -->
     <div class="card">
-      <h3>Buscar producto</h3>
-      <input id="buscar" onkeyup="filtrar()">
+      <h3>Escáner / Buscar producto</h3>
+
+      <input id="buscar"
+             placeholder="Escanea o escribe código..."
+             autofocus
+             oninput="autoScan(this.value)"
+             onkeydown="enterBuscar(event)">
+
       <ul id="lista"></ul>
     </div>
 
-    <!-- CARRITO -->
     <div class="card">
       <input id="cliente" placeholder="Cliente">
       <input id="cedula" placeholder="Cédula">
@@ -83,7 +84,6 @@
 
       <h3>Total: $<span id="total">0</span></h3>
 
-      <!-- 🔥 BOTONES NUEVOS -->
       <div class="pagoBtn">
         <button onclick="setTipo('efectivo')" id="btnE">Efectivo</button>
         <button onclick="setTipo('credito')" id="btnC">Crédito</button>
@@ -99,16 +99,42 @@
   </div>
 </div>
 
-<!-- FACTURA -->
 <div class="overlay" id="overlay">
   <div class="factura" id="factura"></div>
 </div>
 
 <script>
 
+// 🔥 AUTO DETECCIÓN (LOCAL vs RENDER)
+const API = location.hostname === "localhost"
+  ? "http://localhost:3000"
+  : "https://bazar-bellita.onrender.com";
+
 let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
+
+// ================= ESCANEO AUTOMÁTICO =================
+function autoScan(valor){
+  valor = valor.trim();
+
+  if(valor.length < 3) return;
+
+  let producto = productos.find(p =>
+    (p.codigo && p.codigo === valor)
+  );
+
+  if(producto){
+    agregar(producto._id);
+    document.getElementById("buscar").value = "";
+  }
+}
+
+function enterBuscar(e){
+  if(e.key === "Enter"){
+    filtrar();
+  }
+}
 
 // ================= TIPO =================
 function setTipo(tipo){
@@ -126,7 +152,7 @@ function setTipo(tipo){
   }
 }
 
-// ================= CALCULAR VUELTO =================
+// ================= VUELTO =================
 function calcularVuelto(){
   if(tipoPago !== "efectivo") return;
 
@@ -144,45 +170,33 @@ function calcularVuelto(){
     "Vuelto: $" + (vuelto >= 0 ? vuelto.toFixed(2) : 0);
 }
 
-// ================= 🔥 BUSCAR CLIENTE =================
-async function buscarCliente() {
+// ================= CLIENTE =================
+async function buscarCliente(){
   let cedula = document.getElementById("cedula").value;
-
-  if (!cedula) return;
+  if(!cedula) return;
 
   try {
-    let res = await fetch(`http://localhost:3000/clientes/${cedula}`);
+    let res = await fetch(`${API}/clientes/${cedula}`);
     let data = await res.json();
-
-    if (data && data.nombre) {
-      document.getElementById("cliente").value = data.nombre;
-    } else {
-      document.getElementById("cliente").value = "";
-    }
-
-  } catch (err) {
-    console.log("Error buscando cliente", err);
-  }
+    document.getElementById("cliente").value = data?.nombre || "";
+  } catch {}
 }
 
-// 🔥 auto buscar mientras escribe
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("cedula").addEventListener("input", buscarCliente);
-});
+document.getElementById("cedula").addEventListener("input", buscarCliente);
 
 // ================= CARGAR =================
-async function cargar() {
-  const res = await fetch('http://localhost:3000/productos');
+async function cargar(){
+  const res = await fetch(`${API}/productos`);
   productos = await res.json();
   mostrar(productos);
 }
 
 // ================= MOSTRAR =================
-function mostrar(lista) {
+function mostrar(lista){
   let ul = document.getElementById('lista');
   ul.innerHTML = '';
 
-  lista.forEach(p => {
+  lista.forEach(p=>{
     ul.innerHTML += `
       <li>
         ${p.nombre} - $${p.precioVenta} (Stock: ${p.stock})
@@ -193,72 +207,61 @@ function mostrar(lista) {
 }
 
 // ================= FILTRAR =================
-function filtrar() {
-  let t = buscar.value.toLowerCase();
+function filtrar(){
+  let t = document.getElementById("buscar").value.toLowerCase();
 
-  let f = productos.filter(p =>
-    (p.nombre || '').toLowerCase().includes(t) ||
-    (p.codigo || '').toLowerCase().includes(t)
-  );
-
-  mostrar(f);
+  mostrar(productos.filter(p =>
+    p.nombre.toLowerCase().includes(t) ||
+    (p.codigo || "").toLowerCase().includes(t)
+  ));
 }
 
 // ================= AGREGAR =================
-function agregar(id) {
-  let p = productos.find(x => x._id === id);
+function agregar(id){
+  let p = productos.find(x=>x._id===id);
 
   let cant = parseInt(prompt("Cantidad"));
-  if (!cant || cant <= 0) return;
+  if(!cant || cant<=0) return;
+  if(cant > Number(p.stock || 0)) return alert("Sin stock");
 
-  if (cant > p.stock) return alert("Sin stock");
+  let ex = carrito.find(x=>x.id===id);
 
-  let existe = carrito.find(x => x.id === id);
-
-  if (existe) {
-    existe.cantidad += cant;
-  } else {
-    carrito.push({
-      id,
-      nombre: p.nombre,
-      precio: p.precioVenta,
-      cantidad: cant
-    });
-  }
+  if(ex) ex.cantidad += cant;
+  else carrito.push({
+    id,
+    nombre: p.nombre,
+    precio: p.precioVenta,
+    cantidad: cant
+  });
 
   actualizar();
 }
 
 // ================= ACTUALIZAR =================
-function actualizar() {
-  let total = 0;
+function actualizar(){
+  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
 
-  carrito.forEach(p => {
-    total += p.precio * p.cantidad;
-  });
+  document.getElementById("total").innerText = total.toFixed(2);
 
-  document.getElementById('total').innerText = total.toFixed(2);
-
-  document.getElementById('carrito').innerHTML =
-    carrito.map(p =>
-      `<li>${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}</li>`
-    ).join("");
+  document.getElementById("carrito").innerHTML =
+    carrito.map(p=>`
+      <li>${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}</li>
+    `).join("");
 }
 
 // ================= FACTURAR =================
-async function facturar() {
+async function facturar(){
 
-  let cliente = document.getElementById('cliente').value;
-  let cedula = document.getElementById('cedula').value;
+  if(carrito.length === 0) return alert("Carrito vacío");
 
-  if (!cliente) return alert("Cliente requerido");
-  if (carrito.length === 0) return alert("Carrito vacío");
+  let cliente = document.getElementById("cliente").value;
+  let cedula = document.getElementById("cedula").value;
+
+  if(!cliente) return alert("Cliente requerido");
 
   let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
 
-  let pago = 0;
-  let vuelto = 0;
-  let meses = 0;
+  let pago = 0, vuelto = 0, meses = 0;
 
   if(tipoPago === "credito"){
     meses = parseInt(prompt("Meses"));
@@ -267,11 +270,7 @@ async function facturar() {
 
   if(tipoPago === "efectivo"){
     pago = parseFloat(document.getElementById("montoRecibido").value);
-
-    if(isNaN(pago) || pago < total){
-      return alert("Pago insuficiente");
-    }
-
+    if(isNaN(pago) || pago < total) return alert("Pago inválido");
     vuelto = pago - total;
   }
 
@@ -288,27 +287,22 @@ async function facturar() {
 
   html += `<hr><h3>Total: $${total.toFixed(2)}</h3>`;
 
-  if(tipoPago === "efectivo"){
-    html += `<p>Pago: $${pago.toFixed(2)}</p>`;
-    html += `<p>Vuelto: $${vuelto.toFixed(2)}</p>`;
-  }
+  document.getElementById("factura").innerHTML = html;
+  document.getElementById("overlay").style.display = "flex";
 
-  document.getElementById('factura').innerHTML = html;
-  document.getElementById('overlay').style.display = 'flex';
-
-  setTimeout(async () => {
+  setTimeout(async ()=>{
 
     window.print();
 
-    for (let p of carrito) {
-      await fetch(`http://localhost:3000/productos/vender/${p.id}`, {
+    for(let p of carrito){
+      await fetch(`${API}/productos/vender/${p.id}`,{
         method:"PUT",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ cantidad: p.cantidad })
+        body: JSON.stringify({cantidad:p.cantidad})
       });
     }
 
-    await fetch('http://localhost:3000/ventas',{
+    await fetch(`${API}/ventas`,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
@@ -323,20 +317,6 @@ async function facturar() {
       })
     });
 
-    if(tipoPago === "credito"){
-      await fetch('http://localhost:3000/deudas',{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          cliente,
-          cedula,
-          total,
-          meses,
-          pagado: 0
-        })
-      });
-    }
-
     carrito = [];
     actualizar();
 
@@ -345,15 +325,16 @@ async function facturar() {
     document.getElementById("montoRecibido").value = "";
     document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
 
-    document.getElementById('overlay').style.display = 'none';
+    document.getElementById("overlay").style.display = "none";
 
-  }, 800);
+    await cargar();
+
+  }, 600);
 }
 
 cargar();
 
 </script>
-
 
 </body>
 </html>
