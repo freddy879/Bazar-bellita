@@ -118,7 +118,7 @@ async function cargar() {
 
   try {
 
-    const res = await fetch('http://localhost:3000/analisis');
+    const res = await fetch('https://bazar-bellita.onrender.com');
     const data = await res.json();
 
     // ================= TOTAL =================
@@ -171,7 +171,7 @@ async function borrarHistorial() {
   let confirmar = confirm("⚠️ ¿Seguro que quieres borrar TODO?");
   if (!confirmar) return;
 
-  await fetch('http://localhost:3000/ventas', {
+  await fetch('https://bazar-bellita.onrender.com', {
     method: 'DELETE'
   });
 
