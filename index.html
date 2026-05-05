@@ -174,7 +174,7 @@ async function buscarCliente(){
   if(!cedula) return;
 
   try {
-    let res = await fetch(`https://bazar-bellita.onrender.com/${cedula}`);
+    let res = await fetch(`https://bazar-bellita.onrender.com/clientes/${cedula}`)
     let data = await res.json();
     document.getElementById("cliente").value = data?.nombre || "";
   } catch {}
@@ -293,10 +293,10 @@ async function facturar(){
     window.print();
 
     for(let p of carrito){
-      await fetch(`https://bazar-bellita.onrender.com${p.id}`,{
-        method:"PUT",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({cantidad:p.cantidad})
+      await fetch(`https://bazar-bellita.onrender.com/productos/${p.id}`,{
+       method:"PUT",
+       headers:{"Content-Type":"application/json"},
+       body: JSON.stringify({cantidad:p.cantidad})
       });
     }
 
