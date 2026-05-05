@@ -114,42 +114,6 @@ let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
 
-//=========lector=========
-  function autoScan(valor){
-
-  valor = valor.trim(); // limpia espacios
-  if(valor.length < 3) return;
-
-  let producto = productos.find(p =>
-    String(p.codigo || "").trim().toLowerCase() === valor.toLowerCase()
-  );
-
-  if(producto){
-    agregar(producto._id);
-    document.getElementById("buscar").value = "";
-  }
-}
-
-function enterBuscar(e){
-
-  if(e.key === "Enter"){
-
-    let valor = e.target.value.trim();
-
-    // 🔥 intenta escanear primero
-    let producto = productos.find(p =>
-      String(p.codigo || "").trim().toLowerCase() === valor.toLowerCase()
-    );
-
-    if(producto){
-      agregar(producto._id);
-    } else {
-      filtrar(); // si no es código, usa búsqueda
-    }
-
-    e.target.value = "";
-  }
-}
 
 // ================= TIPO =================
 function setTipo(tipo){
