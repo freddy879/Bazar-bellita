@@ -69,11 +69,11 @@
       <h3>Escáner / Buscar producto</h3>
 
       <!-- 🔥 ESCANEO AUTOMÁTICO -->
-      <input id="buscar"
-             placeholder="Escanea o escribe código..."
-             autofocus
-             oninput="autoScan(this.value)"
-             onkeydown="enterBuscar(event)">
+      function enterBuscar(e){
+         if(e.key === "Enter"){
+           filtrar();
+         }
+       }
 
       <ul id="lista"></ul>
     </div>
@@ -272,11 +272,13 @@ async function facturar(){
     window.print();
 
     for(let p of carrito){
-      await fetch(`https://bazar-bellita.onrender.com/productos/${p.id}`,{
-         method:"PUT",
-         headers:{"Content-Type":"application/json"},
-         body: JSON.stringify({cantidad:p.cantidad})
+      await fetch(`https://bazar-bellita.onrender.com/productos/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cantidad: p.cantidad })
       });
+
+    
 
     await fetch("https://bazar-bellita.onrender.com/ventas",{
       method:"POST",
