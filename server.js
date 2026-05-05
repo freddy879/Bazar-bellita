@@ -1,5 +1,3 @@
-const compression = require('compression');
-
 require('dotenv').config();
 
 const express = require('express');
@@ -8,7 +6,7 @@ const cors = require('cors');
 
 const app = express(); // 👈 PRIMERO CREAS app
 
-app.use(compression()); // 👈 DESPUÉS usas compression
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
