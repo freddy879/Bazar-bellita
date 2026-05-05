@@ -111,7 +111,12 @@ let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
 
-
+// ================= ENTER BUSCAR =================
+function enterBuscar(e){
+  if(e.key === "Enter"){
+    filtrar();
+  }
+}
 
 // ================= TIPO =================
 function setTipo(tipo){
@@ -153,7 +158,7 @@ async function buscarCliente(){
   if(!cedula) return;
 
   try {
-    let res = await fetch(`https://bazar-bellita.onrender.com/clientes/${cedula}`)
+    let res = await fetch(`https://bazar-bellita.onrender.com/clientes/${cedula}`);
     let data = await res.json();
     document.getElementById("cliente").value = data?.nombre || "";
   } catch {}
@@ -183,7 +188,7 @@ function mostrar(lista){
   });
 }
 
-// ================= FILTRAR (LUPA MANUAL) =================
+// ================= FILTRAR =================
 function filtrar(){
   let t = document.getElementById("buscar").value.toLowerCase();
 
@@ -271,15 +276,16 @@ async function facturar(){
 
     window.print();
 
+    // ================= ACTUALIZAR STOCK =================
     for(let p of carrito){
       await fetch(`https://bazar-bellita.onrender.com/productos/${p.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cantidad: p.cantidad })
       });
+    }
 
-    
-
+    // ================= GUARDAR VENTA =================
     await fetch("https://bazar-bellita.onrender.com/ventas",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -305,11 +311,12 @@ async function facturar(){
 
     document.getElementById("overlay").style.display = "none";
 
-    await cargar(); // 🔥 stock instantáneo
+    await cargar();
 
   }, 600);
 }
 
+// ================= INICIAR =================
 cargar();
 
 </script>
