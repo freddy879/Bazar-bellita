@@ -114,15 +114,14 @@ let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
 
-// ================= ESCANEO AUTOMÁTICO =================
-function autoScan(valor){
+//=========lector=========
+  function autoScan(valor){
 
-  valor = valor.trim(); // 🔥 limpia espacios
-
+  valor = valor.trim(); // limpia espacios
   if(valor.length < 3) return;
 
   let producto = productos.find(p =>
-    String(p.codigo).trim() === valor
+    String(p.codigo || "").trim().toLowerCase() === valor.toLowerCase()
   );
 
   if(producto){
@@ -132,8 +131,23 @@ function autoScan(valor){
 }
 
 function enterBuscar(e){
+
   if(e.key === "Enter"){
-    filtrar();
+
+    let valor = e.target.value.trim();
+
+    // 🔥 intenta escanear primero
+    let producto = productos.find(p =>
+      String(p.codigo || "").trim().toLowerCase() === valor.toLowerCase()
+    );
+
+    if(producto){
+      agregar(producto._id);
+    } else {
+      filtrar(); // si no es código, usa búsqueda
+    }
+
+    e.target.value = "";
   }
 }
 
