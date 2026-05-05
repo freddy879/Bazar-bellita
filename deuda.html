@@ -394,6 +394,26 @@ function limpiar(){
   document.getElementById("monto").value="";
 }
 
+//=================ELIMINAR================
+async function eliminar(id){
+
+  if(!confirm("¿Seguro que quieres eliminar esta deuda?")) return;
+
+  try {
+
+    await fetch(API + '/deudas/' + id, {
+      method: "DELETE"
+    });
+
+    cargar(); // recarga la tabla
+
+  } catch (err) {
+    console.log(err);
+    alert("Error al eliminar deuda");
+  }
+}
+
+
 cargar();
 </script>
 
