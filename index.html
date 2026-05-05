@@ -111,28 +111,7 @@ let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
 
-// ================= ESCANEO AUTOMÁTICO REAL =================
-function autoScan(valor){
-  valor = valor.trim();
 
-  if(valor.length < 3) return;
-
-  let producto = productos.find(p =>
-    (p.codigo && p.codigo === valor)
-  );
-
-  if(producto){
-    agregar(producto._id);
-    document.getElementById("buscar").value = "";
-  }
-}
-
-// Enter fallback
-function enterBuscar(e){
-  if(e.key === "Enter"){
-    filtrar(); // ahora sirve como lupa manual
-  }
-}
 
 // ================= TIPO =================
 function setTipo(tipo){
