@@ -116,12 +116,13 @@ let tipoPago = "efectivo";
 
 // ================= ESCANEO AUTOMÁTICO =================
 function autoScan(valor){
-  valor = valor.trim();
+
+  valor = valor.trim(); // 🔥 limpia espacios
 
   if(valor.length < 3) return;
 
   let producto = productos.find(p =>
-    (p.codigo && p.codigo === valor)
+    String(p.codigo).trim() === valor
   );
 
   if(producto){
