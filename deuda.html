@@ -149,9 +149,7 @@
 
 <script>
 
-const API = location.hostname === "localhost"
-  ? "http://localhost:3000"
-  : "https://bazar-bellita.onrender.com";
+const API ="https://bazar-bellita.onrender.com";
 
 
 let deudas = [];
@@ -206,6 +204,18 @@ function mostrar(lista){
     let restante = d.total - pagado;
     let estado = restante <= 0 ? "Pagado ✅" : "Pendiente";
 
+    let productos = (d.productos && d.productos.length)
+      ? d.productos.map(p =>
+          `${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}`
+        ).join("<br>")
+      : "Sin productos";
+
+    let pagos = (d.pagos && d.pagos.length)
+      ? d.pagos.map(p =>
+          `$${p.monto} - ${new Date(p.fecha).toLocaleString()}`
+        ).join("<br>")
+      : "Sin pagos";
+
     tabla.innerHTML += `
       <tr>
         <td>${d.cliente}</td>
@@ -215,15 +225,37 @@ function mostrar(lista){
         <td>$${pagado}</td>
         <td>$${restante}</td>
         <td>${estado}</td>
-     <td>
-      <input id="abono${d._id}" style="width:80px">
-        <button onclick="abonar('${d._id}')">💰</button>
-        <button onclick="ver('${d._id}')">👁️</button>
-        <button onclick="eliminar('${d._id}')">🗑</button>
-    </td>
+        <td>
+          <input id="abono${d._id}" style="width:80px">
+          <button onclick="abonar('${d._id}')">💰</button>
+          <button onclick="toggleDetalle('${d._id}')">📄</button>
+          <button onclick="eliminar('${d._id}')">🗑</button>
+        </td>
+      </tr>
+
+      <tr id="detalle-${d._id}" style="display:none; background:#f9f9f9;">
+        <td colspan="8" style="text-align:left;">
+          <b>📦 Productos:</b><br>
+          ${productos}<br><br>
+
+          <b>💰 Pagos:</b><br>
+          ${pagos}
+        </td>
       </tr>
     `;
   });
+}
+
+function toggleDetalle(id){
+  let fila = document.getElementById("detalle-" + id);
+
+  if(!fila) return;
+
+  if(fila.style.display === "none"){
+    fila.style.display = "table-row";
+  } else {
+    fila.style.display = "none";
+  }
 }
 
 // ================= ABONAR =================
