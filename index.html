@@ -181,7 +181,7 @@ function mostrar(lista){
   });
 }
 
-// ================= LUPA MANUAL =================
+// ================= FILTRAR =================
 function filtrar(){
   let t = document.getElementById("buscar").value.toLowerCase();
 
@@ -191,7 +191,7 @@ function filtrar(){
   ));
 }
 
-// ENTER = BUSCAR
+// ================= ENTER BUSCAR =================
 function enterBuscar(e){
   if(e.key === "Enter"){
     filtrar();
