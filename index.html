@@ -38,13 +38,6 @@
     .pagoBtn button { flex:1; }
 
     .activo { background:#2ed573 !important; }
-
-    /* 🔥 estilo tipo POS */
-    #buscar {
-      font-size: 18px;
-      border: 2px solid #ff3f34;
-      outline: none;
-    }
   </style>
 </head>
 
@@ -55,26 +48,19 @@
   <a href="index.html">💰 Venta</a>
   <a href="bodega.html">📦 Bodega</a>
   <a href="deuda.html">💸 Deudas</a>
-  <a href="analisis.html">🔍 Historial</a>
+  <a href="analisis.html">📊 Análisis</a>
   <a href="caja.html">💵 Caja</a>
   <a href="cliente.html">👤 Clientes</a>
 </div>
 
 <div class="main">
-  <div class="header">🛒 Ventas POS</div>
+  <div class="header">🛒 Ventas</div>
 
   <div class="contenido">
 
     <div class="card">
-      <h3>Escáner / Buscar producto</h3>
-
-      <!-- 🔥 ESCANEO AUTOMÁTICO -->
-      function enterBuscar(e){
-         if(e.key === "Enter"){
-           filtrar();
-         }
-       }
-
+      <h3>Buscar producto</h3>
+      <input id="buscar" onkeyup="filtrar()">
       <ul id="lista"></ul>
     </div>
 
@@ -111,13 +97,6 @@ let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
 
-// ================= ENTER BUSCAR =================
-function enterBuscar(e){
-  if(e.key === "Enter"){
-    filtrar();
-  }
-}
-
 // ================= TIPO =================
 function setTipo(tipo){
   tipoPago = tipo;
@@ -153,32 +132,53 @@ function calcularVuelto(){
 }
 
 // ================= CLIENTE =================
-async function buscarCliente(){
+async function buscarCliente() {
   let cedula = document.getElementById("cedula").value;
-  if(!cedula) return;
+  if (!cedula) return;
 
   try {
     let res = await fetch(`https://bazar-bellita.onrender.com/clientes/${cedula}`);
     let data = await res.json();
+
     document.getElementById("cliente").value = data?.nombre || "";
-  } catch {}
+  } catch (err) {
+    console.log("Error buscando cliente", err);
+  }
 }
 
-document.getElementById("cedula").addEventListener("input", buscarCliente);
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("cedula").addEventListener("input", buscarCliente);
+});
 
 // ================= CARGAR =================
-async function cargar(){
-  const res = await fetch('https://bazar-bellita.onrender.com');
-  productos = await res.json();
-  mostrar(productos);
+async function cargar() {
+  try {
+    const res = await fetch('https://bazar-bellita.onrender.com/productos');
+
+    if (!res.ok) {
+      throw new Error("Error HTTP: " + res.status);
+    }
+
+    productos = await res.json();
+
+    if (!Array.isArray(productos)) {
+      throw new Error("Respuesta inválida del servidor");
+    }
+
+    mostrar(productos);
+
+  } catch (err) {
+    alert("Error cargando productos");
+    console.log("Error real:", err);
+  }
 }
 
 // ================= MOSTRAR =================
-function mostrar(lista){
+function mostrar(lista) {
   let ul = document.getElementById('lista');
   ul.innerHTML = '';
 
-  lista.forEach(p=>{
+  lista.forEach(p => {
     ul.innerHTML += `
       <li>
         ${p.nombre} - $${p.precioVenta} (Stock: ${p.stock})
@@ -189,61 +189,68 @@ function mostrar(lista){
 }
 
 // ================= FILTRAR =================
-function filtrar(){
+function filtrar() {
   let t = document.getElementById("buscar").value.toLowerCase();
 
-  mostrar(productos.filter(p =>
-    p.nombre.toLowerCase().includes(t) ||
-    (p.codigo || "").toLowerCase().includes(t)
-  ));
+  let f = productos.filter(p =>
+    (p.nombre || '').toLowerCase().includes(t) ||
+    (p.codigo || '').toLowerCase().includes(t)
+  );
+
+  mostrar(f);
 }
 
 // ================= AGREGAR =================
-function agregar(id){
-  let p = productos.find(x=>x._id===id);
+function agregar(id) {
+  let p = productos.find(x => x._id === id);
 
   let cant = parseInt(prompt("Cantidad"));
-  if(!cant || cant<=0) return;
-  if(cant > Number(p.stock || 0)) return alert("Sin stock");
+  if (!cant || cant <= 0) return;
 
-  let ex = carrito.find(x=>x.id===id);
+  if (cant > p.stock) return alert("Sin stock");
 
-  if(ex) ex.cantidad += cant;
-  else carrito.push({
-    id,
-    nombre: p.nombre,
-    precio: p.precioVenta,
-    cantidad: cant
-  });
+  let existe = carrito.find(x => x.id === id);
+
+  if (existe) {
+    existe.cantidad += cant;
+  } else {
+    carrito.push({
+      id,
+      nombre: p.nombre,
+      precio: p.precioVenta,
+      cantidad: cant
+    });
+  }
 
   actualizar();
 }
 
 // ================= ACTUALIZAR =================
-function actualizar(){
+function actualizar() {
   let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
 
-  document.getElementById("total").innerText = total.toFixed(2);
+  document.getElementById('total').innerText = total.toFixed(2);
 
-  document.getElementById("carrito").innerHTML =
-    carrito.map(p=>`
-      <li>${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}</li>
-    `).join("");
+  document.getElementById('carrito').innerHTML =
+    carrito.map(p =>
+      `<li>${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}</li>`
+    ).join("");
 }
 
 // ================= FACTURAR =================
-async function facturar(){
+async function facturar() {
 
-  if(carrito.length === 0) return alert("Carrito vacío");
+  let cliente = document.getElementById('cliente').value;
+  let cedula = document.getElementById('cedula').value;
 
-  let cliente = document.getElementById("cliente").value;
-  let cedula = document.getElementById("cedula").value;
-
-  if(!cliente) return alert("Cliente requerido");
+  if (!cliente) return alert("Cliente requerido");
+  if (carrito.length === 0) return alert("Carrito vacío");
 
   let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
 
-  let pago = 0, vuelto = 0, meses = 0;
+  let pago = 0;
+  let vuelto = 0;
+  let meses = 0;
 
   if(tipoPago === "credito"){
     meses = parseInt(prompt("Meses"));
@@ -252,7 +259,7 @@ async function facturar(){
 
   if(tipoPago === "efectivo"){
     pago = parseFloat(document.getElementById("montoRecibido").value);
-    if(isNaN(pago) || pago < total) return alert("Pago inválido");
+    if(isNaN(pago) || pago < total) return alert("Pago insuficiente");
     vuelto = pago - total;
   }
 
@@ -269,24 +276,27 @@ async function facturar(){
 
   html += `<hr><h3>Total: $${total.toFixed(2)}</h3>`;
 
-  document.getElementById("factura").innerHTML = html;
-  document.getElementById("overlay").style.display = "flex";
+  if(tipoPago === "efectivo"){
+    html += `<p>Pago: $${pago.toFixed(2)}</p>`;
+    html += `<p>Vuelto: $${vuelto.toFixed(2)}</p>`;
+  }
 
-  setTimeout(async ()=>{
+  document.getElementById('factura').innerHTML = html;
+  document.getElementById('overlay').style.display = 'flex';
+
+  setTimeout(async () => {
 
     window.print();
 
-    // ================= ACTUALIZAR STOCK =================
-    for(let p of carrito){
-      await fetch(`https://bazar-bellita.onrender.com/productos/${p.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+    for (let p of carrito) {
+      await fetch(`https://bazar-bellita.onrender.com/vender/${p.id}`, {
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ cantidad: p.cantidad })
       });
     }
 
-    // ================= GUARDAR VENTA =================
-    await fetch("https://bazar-bellita.onrender.com/ventas",{
+    await fetch('https://bazar-bellita.onrender.com/ventas',{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
@@ -301,6 +311,20 @@ async function facturar(){
       })
     });
 
+    if(tipoPago === "credito"){
+      await fetch(`https://bazar-bellita.onrender.com/productos/vender/${p.id}`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          cliente,
+          cedula,
+          total,
+          meses,
+          pagado: 0
+        })
+      });
+    }
+
     carrito = [];
     actualizar();
 
@@ -309,14 +333,11 @@ async function facturar(){
     document.getElementById("montoRecibido").value = "";
     document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
 
-    document.getElementById("overlay").style.display = "none";
+    document.getElementById('overlay').style.display = 'none';
 
-    await cargar();
-
-  }, 600);
+  }, 800);
 }
 
-// ================= INICIAR =================
 cargar();
 
 </script>
