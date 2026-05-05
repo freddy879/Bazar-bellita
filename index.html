@@ -100,9 +100,10 @@
         <button onclick="setTipo('efectivo')" id="btnE">Efectivo</button>
         <button onclick="setTipo('credito')" id="btnC">Crédito</button>
       </div>
+      
+      <input id="montoRecibido" placeholder="Monto recibido" oninput="calcularVuelto()">
 
-      <input id="montoRecibido" placeholder="Monto recibido" oninput="calcularVuelto">
-
+      
       <p id="vueltoTxt">Vuelto: $0</p>
 
       <button onclick="facturar()">Confirmar venta</button>
@@ -141,12 +142,11 @@ function setTipo(tipo){
 }
 
 function calcularVuelto(){
-  if(tipoPago !== "efectivo") return;
+  let total = carrito.reduce((s,p)=>s + (p.precio * p.cantidad), 0);
 
-  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
-  let pago = parseFloat(document.getElementById("montoRecibido").value);
+  let pago = Number(document.getElementById("montoRecibido").value || 0);
 
-  if(isNaN(pago)){
+  if(tipoPago !== "efectivo"){
     document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
     return;
   }
@@ -154,9 +154,8 @@ function calcularVuelto(){
   let vuelto = pago - total;
 
   document.getElementById("vueltoTxt").innerText =
-    "Vuelto: $" + (vuelto >= 0 ? vuelto.toFixed(2) : 0);
+    "Vuelto: $" + (vuelto > 0 ? vuelto.toFixed(2) : "0");
 }
-
 async function buscarCliente(){
   let cedula = document.getElementById("cedula").value;
   if(!cedula) return;
