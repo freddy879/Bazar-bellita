@@ -1,11 +1,14 @@
+const compression = require('compression');
+
 require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const app = express();
+const app = express(); // 👈 PRIMERO CREAS app
 
+app.use(compression()); // 👈 DESPUÉS usas compression
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -22,10 +25,14 @@ const db = process.env.MONGO_DB;
 const URI = `mongodb+srv://${user}:${pass}@cluster0.8otlbi7.mongodb.net/${db}?retryWrites=true&w=majority`;
 
 // ================== CONEXIÓN MONGO ==================
+mongoose.set('strictQuery', false);
+
 mongoose.connect(URI, {
   serverSelectionTimeoutMS: 5000,
-  maxPoolSize: 10
+  maxPoolSize: 20,        // 🔥 más conexiones
+  socketTimeoutMS: 45000, // 🔥 evita cortes
 })
+
 .then(() => console.log("✅ Mongo conectado rápido"))
 .catch(err => console.log("❌ Error Mongo:", err));
 // ================== MODELOS ==================
@@ -69,6 +76,14 @@ const Deuda = mongoose.model('Deuda', {
 });
 
 // ================== CAJA ==================
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    message: "Servidor activo",
+    time: new Date()
+  });
+});
+
 const Caja = mongoose.model('Caja', {
   fecha: { type: Date, default: Date.now },
   horaCierre: Date,
