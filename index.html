@@ -39,17 +39,11 @@
 
     .activo { background:#2ed573 !important; }
 
+    /* 🔥 estilo tipo POS */
     #buscar {
       font-size: 18px;
       border: 2px solid #ff3f34;
       outline: none;
-      width: 80%;
-    }
-
-    .searchBox{
-      display:flex;
-      align-items:center;
-      gap:5px;
     }
   </style>
 </head>
@@ -74,16 +68,12 @@
     <div class="card">
       <h3>Escáner / Buscar producto</h3>
 
-      <!-- 🔥 AQUÍ ESTÁ LA LUPA AGREGADA -->
-      <div class="searchBox">
-        <input id="buscar"
-               placeholder="Escanea o escribe código..."
-               autofocus
-               oninput="autoScan(this.value)"
-               onkeydown="enterBuscar(event)">
-
-        <button onclick="filtrar()">🔍</button>
-      </div>
+      <!-- 🔥 ESCANEO AUTOMÁTICO -->
+      <input id="buscar"
+             placeholder="Escanea o escribe código..."
+             autofocus
+             oninput="autoScan(this.value)"
+             onkeydown="enterBuscar(event)">
 
       <ul id="lista"></ul>
     </div>
@@ -100,10 +90,9 @@
         <button onclick="setTipo('efectivo')" id="btnE">Efectivo</button>
         <button onclick="setTipo('credito')" id="btnC">Crédito</button>
       </div>
-      
+
       <input id="montoRecibido" placeholder="Monto recibido" oninput="calcularVuelto()">
 
-      
       <p id="vueltoTxt">Vuelto: $0</p>
 
       <button onclick="facturar()">Confirmar venta</button>
@@ -118,14 +107,11 @@
 
 <script>
 
-const API = location.hostname === "localhost"
-  ? "http://localhost:3000"
-  : "https://bazar-bellita.onrender.com";
-
 let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
 
+// ================= TIPO =================
 function setTipo(tipo){
   tipoPago = tipo;
 
@@ -141,12 +127,14 @@ function setTipo(tipo){
   }
 }
 
+// ================= VUELTO =================
 function calcularVuelto(){
-  let total = carrito.reduce((s,p)=>s + (p.precio * p.cantidad), 0);
+  if(tipoPago !== "efectivo") return;
 
-  let pago = Number(document.getElementById("montoRecibido").value || 0);
+  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
+  let pago = parseFloat(document.getElementById("montoRecibido").value);
 
-  if(tipoPago !== "efectivo"){
+  if(isNaN(pago)){
     document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
     return;
   }
@@ -154,14 +142,16 @@ function calcularVuelto(){
   let vuelto = pago - total;
 
   document.getElementById("vueltoTxt").innerText =
-    "Vuelto: $" + (vuelto > 0 ? vuelto.toFixed(2) : "0");
+    "Vuelto: $" + (vuelto >= 0 ? vuelto.toFixed(2) : 0);
 }
+
+// ================= CLIENTE =================
 async function buscarCliente(){
   let cedula = document.getElementById("cedula").value;
   if(!cedula) return;
 
   try {
-    let res = await fetch(`${API}/clientes/${cedula}`);
+    let res = await fetch(`https://bazar-bellita.onrender.com/${cedula}`);
     let data = await res.json();
     document.getElementById("cliente").value = data?.nombre || "";
   } catch {}
@@ -169,12 +159,14 @@ async function buscarCliente(){
 
 document.getElementById("cedula").addEventListener("input", buscarCliente);
 
+// ================= CARGAR =================
 async function cargar(){
-  const res = await fetch(`${API}/productos`);
+  const res = await fetch('https://bazar-bellita.onrender.com');
   productos = await res.json();
   mostrar(productos);
 }
 
+// ================= MOSTRAR =================
 function mostrar(lista){
   let ul = document.getElementById('lista');
   ul.innerHTML = '';
@@ -189,6 +181,7 @@ function mostrar(lista){
   });
 }
 
+// ================= LUPA MANUAL =================
 function filtrar(){
   let t = document.getElementById("buscar").value.toLowerCase();
 
@@ -198,6 +191,14 @@ function filtrar(){
   ));
 }
 
+// ENTER = BUSCAR
+function enterBuscar(e){
+  if(e.key === "Enter"){
+    filtrar();
+  }
+}
+
+// ================= AGREGAR =================
 function agregar(id){
   let p = productos.find(x=>x._id===id);
 
@@ -218,6 +219,7 @@ function agregar(id){
   actualizar();
 }
 
+// ================= ACTUALIZAR =================
 function actualizar(){
   let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
 
@@ -227,6 +229,89 @@ function actualizar(){
     carrito.map(p=>`
       <li>${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}</li>
     `).join("");
+}
+
+// ================= FACTURAR =================
+async function facturar(){
+
+  if(carrito.length === 0) return alert("Carrito vacío");
+
+  let cliente = document.getElementById("cliente").value;
+  let cedula = document.getElementById("cedula").value;
+
+  if(!cliente) return alert("Cliente requerido");
+
+  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
+
+  let pago = 0, vuelto = 0, meses = 0;
+
+  if(tipoPago === "credito"){
+    meses = parseInt(prompt("Meses"));
+    if(!meses) return alert("Mes inválido");
+  }
+
+  if(tipoPago === "efectivo"){
+    pago = parseFloat(document.getElementById("montoRecibido").value);
+    if(isNaN(pago) || pago < total) return alert("Pago inválido");
+    vuelto = pago - total;
+  }
+
+  let html = `
+    <h2>FACTURA</h2>
+    <p>Cliente: ${cliente}</p>
+    <p>Cédula: ${cedula || "-"}</p>
+    <hr>
+  `;
+
+  carrito.forEach(p=>{
+    html += `<p>${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}</p>`;
+  });
+
+  html += `<hr><h3>Total: $${total.toFixed(2)}</h3>`;
+
+  document.getElementById("factura").innerHTML = html;
+  document.getElementById("overlay").style.display = "flex";
+
+  setTimeout(async ()=>{
+
+    window.print();
+
+    for(let p of carrito){
+      await fetch(`https://bazar-bellita.onrender.com${p.id}`,{
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({cantidad:p.cantidad})
+      });
+    }
+
+    await fetch("https://bazar-bellita.onrender.com/ventas",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        cliente,
+        cedula,
+        productos: carrito,
+        total,
+        tipo: tipoPago,
+        meses,
+        pago,
+        vuelto
+      })
+    });
+
+    carrito = [];
+    actualizar();
+
+    document.getElementById("cliente").value = "";
+    document.getElementById("cedula").value = "";
+    document.getElementById("montoRecibido").value = "";
+    document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
+
+    document.getElementById("overlay").style.display = "none";
+
+    await cargar();
+
+  }, 600);
 }
 
 cargar();
