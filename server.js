@@ -54,7 +54,7 @@ const Venta = mongoose.model('Venta', {
   fecha: { type: Date, default: Date.now }
 });
 
-// ================== DEUDAS ==================
+// ================== MODELO ==================
 const Deuda = mongoose.model('Deuda', {
   cliente: String,
   cedula: String,
@@ -62,28 +62,99 @@ const Deuda = mongoose.model('Deuda', {
   direccion: String,
   total: Number,
   pagado: { type: Number, default: 0 },
-
   productos: { type: Array, default: [] },
-
   pagos: [
     {
       monto: Number,
       fecha: { type: Date, default: Date.now }
     }
   ],
-
   fecha: { type: Date, default: Date.now }
 });
 
-
+// ================== DEUDAS ==================
 app.get('/deudas', async (req, res) => {
-  res.json(await Deuda.find().sort({ fecha: -1 }));
+  try {
+    console.log("🔥 DEUDAS FUNCIONANDO");
+    const deudas = await Deuda.find().sort({ fecha: -1 });
+    res.json(deudas);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al obtener deudas" });
+  }
+});
+
+app.post('/deudas', async (req, res) => {
+  try {
+    const nueva = new Deuda({
+      cliente: req.body.cliente || "",
+      cedula: req.body.cedula || "-",
+      celular: req.body.celular || "",
+      direccion: req.body.direccion || "",
+      total: Number(req.body.total || 0),
+      pagado: 0,
+      productos: req.body.productos || [],
+      pagos: [],
+      fecha: new Date()
+    });
+
+    await nueva.save();
+    res.json(nueva);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al crear deuda" });
+  }
+});
+
+app.post('/deudas/pagar', async (req, res) => {
+  try {
+    let deuda = await Deuda.findById(req.body.id);
+    if (!deuda) return res.json({ error: "No encontrada" });
+
+    let monto = Number(req.body.monto);
+    if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
+
+    let restante = deuda.total - deuda.pagado;
+    if (monto > restante) return res.json({ error: "Excede deuda" });
+
+    deuda.pagado += monto;
+
+    deuda.pagos.push({
+      monto,
+      fecha: new Date()
+    });
+
+    await deuda.save();
+
+    res.json({
+      cliente: deuda.cliente,
+      cedula: deuda.cedula,
+      celular: deuda.celular,
+      total: deuda.total,
+      pagado: deuda.pagado,
+      restante: deuda.total - deuda.pagado,
+      pagos: deuda.pagos,
+      productos: deuda.productos
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al pagar" });
+  }
 });
 
 app.delete('/deudas/:id', async (req, res) => {
-  await Deuda.findByIdAndDelete(req.params.id);
-  res.json({ ok: true });
+  try {
+    await Deuda.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Error al eliminar" });
+  }
 });
+
+// 🔥 SIEMPRE AL FINAL
+app.use(express.static('public'));
 // ================== CAJA ==================
 app.get('/health', (req, res) => {
   res.status(200).json({
