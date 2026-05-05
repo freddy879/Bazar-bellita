@@ -294,33 +294,7 @@ app.post('/ventas', async (req, res) => {
   res.json({ ok: true });
 });
 
-//-------Deuda-----------
-app.post('/deudas', async (req, res) => {
-  try {
 
-  let nueva = new Deuda({
-  cliente: req.body.cliente || "",
-  cedula: req.body.cedula || "-",
-  celular: req.body.celular || "",
-  direccion: req.body.direccion || "",
-
-  total: Number(req.body.total || 0),
-  pagado: 0,
-
-  productos: req.body.productos || [],
-  pagos: [],
-  fecha: new Date()
-});
-
-await nueva.save();
-
-res.json(nueva);;
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error al crear deuda" });
-  }
-});
 // ================== ABONAR ==================
 app.post('/deudas/pagar', async (req, res) => {
 
@@ -342,7 +316,100 @@ app.post('/deudas/pagar', async (req, res) => {
   });
 
   await deuda.save();
+// ================== DEUDAS ==================
 
+// TEST ROOT
+app.get('/', (req, res) => {
+  res.send("🚀 API Bazar Bellita funcionando");
+});
+
+// OBTENER TODAS LAS DEUDAS
+app.get('/deudas', async (req, res) => {
+  try {
+    const deudas = await Deuda.find().sort({ fecha: -1 });
+    res.json(deudas);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al obtener deudas" });
+  }
+});
+
+// CREAR DEUDA
+app.post('/deudas', async (req, res) => {
+  try {
+    const nueva = new Deuda({
+      cliente: req.body.cliente || "",
+      cedula: req.body.cedula || "-",
+      celular: req.body.celular || "",
+      direccion: req.body.direccion || "",
+      total: Number(req.body.total || 0),
+      pagado: 0,
+      productos: req.body.productos || [],
+      pagos: [],
+      fecha: new Date()
+    });
+
+    await nueva.save();
+
+    res.json(nueva);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al crear deuda" });
+  }
+});
+
+// ELIMINAR DEUDA
+app.delete('/deudas/:id', async (req, res) => {
+  try {
+    await Deuda.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al eliminar deuda" });
+  }
+});
+
+// PAGAR DEUDA
+app.post('/deudas/pagar', async (req, res) => {
+  try {
+    let deuda = await Deuda.findById(req.body.id);
+    if (!deuda) return res.json({ error: "Deuda no encontrada" });
+
+    let monto = Number(req.body.monto);
+    if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
+
+    let restante = deuda.total - deuda.pagado;
+
+    if (monto > restante) {
+      return res.json({ error: "No puedes pagar más de la deuda" });
+    }
+
+    deuda.pagado += monto;
+
+    deuda.pagos.push({
+      monto,
+      fecha: new Date()
+    });
+
+    await deuda.save();
+
+    res.json({
+      cliente: deuda.cliente,
+      cedula: deuda.cedula,
+      celular: deuda.celular,
+      total: deuda.total,
+      pagado: deuda.pagado,
+      restante: deuda.total - deuda.pagado,
+      pagos: deuda.pagos,
+      productos: deuda.productos
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al pagar deuda" });
+  }
+});
   let caja = await Caja.findOne({ activa: true });
 
   if (caja) {
