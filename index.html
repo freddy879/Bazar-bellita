@@ -272,12 +272,11 @@ async function facturar(){
     window.print();
 
     for(let p of carrito){
-       await fetch(`https://bazar-bellita.onrender.com/productos/${p.id}`)
-       method:"PUT",
-       headers:{"Content-Type":"application/json"},
-       body: JSON.stringify({cantidad:p.cantidad})
+      await fetch(`https://bazar-bellita.onrender.com/productos/${p.id}`,{
+         method:"PUT",
+         headers:{"Content-Type":"application/json"},
+         body: JSON.stringify({cantidad:p.cantidad})
       });
-    }
 
     await fetch("https://bazar-bellita.onrender.com/ventas",{
       method:"POST",
