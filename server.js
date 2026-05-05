@@ -14,14 +14,20 @@ app.use(express.static('public'));
 console.log("USER:", process.env.MONGO_USER);
 console.log("DB:", process.env.MONGO_DB);
 
-// ================== MONGO ==================
-const mongoose = require('mongoose');
-
+// ================== MONGO CONFIG ==================
 const user = process.env.MONGO_USER;
 const pass = encodeURIComponent(process.env.MONGO_PASS);
 const db = process.env.MONGO_DB;
 
 const URI = `mongodb+srv://${user}:${pass}@cluster0.8otlbi7.mongodb.net/${db}?retryWrites=true&w=majority`;
+
+// ================== CONEXIÓN MONGO ==================
+mongoose.connect(URI, {
+  serverSelectionTimeoutMS: 5000,
+  maxPoolSize: 10
+})
+.then(() => console.log("✅ Mongo conectado rápido"))
+.catch(err => console.log("❌ Error Mongo:", err));
 // ================== MODELOS ==================
 const Producto = mongoose.model('Producto', {
   nombre: String,
