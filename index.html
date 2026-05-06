@@ -67,6 +67,7 @@
     <div class="card">
       <input id="cliente" placeholder="Cliente">
       <input id="cedula" placeholder="Cédula">
+      <input id="celular" placeholder="Celular">
       <input id="descuento" type="number" placeholder="Descuento % (opcional)">
 
       <ul id="carrito"></ul>
@@ -243,6 +244,8 @@ async function facturar() {
 
   let cliente = document.getElementById('cliente').value;
   let cedula = document.getElementById('cedula').value;
+  let celular = document.getElementById('celular').value; // 👈 AQUÍ VA
+
 
   if (!cliente) return alert("Cliente requerido");
   if (carrito.length === 0) return alert("Carrito vacío");
@@ -319,6 +322,7 @@ async function facturar() {
       body: JSON.stringify({
         cliente,
         cedula,
+        celular,
         productos: carrito,
         total: totalFinal,
         tipo: tipoPago,
