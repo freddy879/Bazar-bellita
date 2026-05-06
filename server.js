@@ -460,6 +460,9 @@ app.post('/caja/cerrar', async (req, res) => {
 
   await caja.save();
 
+  // 🔥 NUEVO: FILTRAR SOLO GASTOS
+  let gastosLista = caja.movimientos.filter(m => m.tipo === "gasto");
+
   if (dejar > 0) {
     await new Caja({
       apertura: dejar,
@@ -477,7 +480,7 @@ app.post('/caja/cerrar', async (req, res) => {
     real,
     diferencia,
     dejar,
-    movimientos: caja.movimientos || []
+    gastosLista // 👈 🔥 AQUÍ ESTÁ LA CLAVE
   });
 });
 
