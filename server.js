@@ -279,7 +279,7 @@ app.post('/ventas', async (req, res) => {
     await new Deuda({
       cliente: req.body.cliente,
       cedula: req.body.cedula || "SIN CÉDULA",
-      celular: "",
+      celular: req.body.celular || "", // 🔥 FIX
       direccion: "",
       total: req.body.total,
       pagado: 0,
