@@ -175,18 +175,21 @@ function buscarCliente(){
 
   let filtradas = deudas.filter(d => {
 
-    let nombre = (d.cliente || "")
-      .toLowerCase()
-      .replace(/\s+/g, " ")   // limpia espacios raros
-      .trim();
+    // 🔥 asegurar que siempre sea texto limpio
+    let nombre = String(d.cliente || "").toLowerCase().trim();
+    let cedula = String(d.cedula || "").toLowerCase().trim();
+    let celular = String(d.celular || "").toLowerCase().trim();
 
-    let cedula = (d.cedula || "").toLowerCase();
-
-    return nombre.includes(texto) || cedula.includes(texto);
+    return (
+      nombre.includes(texto) ||
+      cedula.includes(texto) ||
+      celular.includes(texto)
+    );
   });
 
   mostrar(filtradas);
 }
+
 // ================= AGREGAR =================
 async function agregar(){
 
@@ -231,6 +234,9 @@ async function agregar(){
   limpiar();
   cargar();
 }
+
+
+
 // ================= MOSTRAR =================
 function mostrar(lista){
 
