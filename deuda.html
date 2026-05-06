@@ -101,9 +101,9 @@
   <div class="contenido">
 
     <div class="card">
-      <input id="buscar" placeholder="Buscar por nombre o cédula">
-      <button onclick="buscarCliente()">Buscar</button>
-      <button onclick="cargar()">♻ Recargar</button>
+     <input id="buscar" placeholder="Buscar por nombre o cédula" onkeyup="buscarCliente()">
+     <button onclick="buscarCliente()">Buscar</button>
+     <button onclick="cargar()">♻ Recargar</button>
     </div>
 
     <div class="card">
@@ -114,7 +114,7 @@
 
       <input id="cedula" placeholder="Cédula">
       <input id="celular" placeholder="Celular">
-      <input id="direccion" placeholder="Dirección"><br>
+      <input id="direccion" placeholder="Producto"><br>
 
       <input id="monto" placeholder="Monto">
       <input id="meses" placeholder="Meses"><br>
@@ -161,6 +161,28 @@ async function cargar() {
   mostrar(deudas);
 }
 
+//===============Buscar cliente ============
+function buscarCliente(){
+
+  let texto = document.getElementById("buscar").value.toLowerCase().trim();
+
+  if(!texto){
+    mostrar(deudas);
+    return;
+  }
+
+  let filtradas = deudas.filter(d =>
+    (d.cliente || "").toLowerCase().includes(texto) ||
+    (d.cedula || "").toLowerCase().includes(texto) ||
+    (d.celular || "").toLowerCase().includes(texto)
+  );
+
+  if(filtradas.length === 0){
+    alert("No se encontró ningún cliente");
+  }
+
+  mostrar(filtradas);
+}
 // ================= AGREGAR =================
 async function agregar(){
 
@@ -168,10 +190,21 @@ async function agregar(){
   let apellidoV = document.getElementById("apellido").value;
   let cedulaV = document.getElementById("cedula").value;
   let celularV = document.getElementById("celular").value;
-  let direccionV = document.getElementById("direccion").value;
-  let totalV = parseFloat(document.getElementById("monto").value);
 
+  let totalV = parseFloat(document.getElementById("monto").value);
   if(!totalV) return alert("Monto inválido");
+
+  let productosTexto = document.getElementById("direccion").value;
+
+  let productosArray = [];
+
+  if(productosTexto){
+    productosArray.push({
+      nombre: productosTexto,
+      cantidad: 1,
+      precio: totalV
+    });
+  }
 
   await fetch(API + '/deudas', {
     method: "POST",
@@ -180,9 +213,9 @@ async function agregar(){
       cliente: nombreV + " " + apellidoV,
       cedula: cedulaV || "-",
       celular: celularV || "",
-      direccion: direccionV || "",
+      direccion: "",
       total: totalV,
-      productos: [],
+      productos: productosArray, // 🔥 AQUÍ ESTÁ LA CLAVE
       pagos: [],
       pagado: 0
     })
@@ -414,7 +447,7 @@ async function eliminar(id){
 }
 
 
-cargar();
+window.onload = cargar;
 </script>
 
 </body>
