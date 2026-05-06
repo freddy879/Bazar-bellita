@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
   <title>Caja - Bazar Bellita</title>
@@ -91,6 +91,7 @@
       font-weight: bold;
     }
 
+    /* 🧾 IMPRESIÓN TÉRMICA REAL */
     @page {
       size: 80mm auto;
       margin: 0;
@@ -169,26 +170,20 @@
 
 <script>
 
-const API = "https://bazar-bellita.onrender.com";
-
 // ================== ABRIR ==================
 async function abrir(){
   let monto = Number(document.getElementById('monto').value);
   if(!monto || monto <= 0) return alert("Monto inválido");
 
-  try{
-    let res = await fetch(API + '/caja/abrir',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ monto })
-    });
+  let res = await fetch('http://localhost:3000/caja/abrir',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ monto })
+  });
 
-    let data = await res.json();
-    alert(data.error || "Caja abierta ✔");
+  let data = await res.json();
 
-  }catch{
-    alert("❌ Error conexión");
-  }
+  alert(data.error || "Caja abierta ✔");
 
   document.getElementById('monto').value = "";
   cargar();
@@ -196,21 +191,21 @@ async function abrir(){
 
 // ================== CARGAR ==================
 async function cargar(){
-  try{
-    let res = await fetch(API + '/caja');
-    let data = await res.json();
+  let res = await fetch('http://localhost:3000/caja');
+  let data = await res.json();
 
-    apertura.innerText = data?.apertura || 0;
-    ingresos.innerText = data?.ingresos || 0;
-    gastos.innerText = data?.gastos || 0;
-    saldo.innerText = data?.saldo || 0;
-
-  }catch{
+  if(!data){
     apertura.innerText = 0;
     ingresos.innerText = 0;
     gastos.innerText = 0;
     saldo.innerText = 0;
+    return;
   }
+
+  apertura.innerText = data.apertura || 0;
+  ingresos.innerText = data.ingresos || 0;
+  gastos.innerText = data.gastos || 0;
+  saldo.innerText = data.saldo || 0;
 }
 
 // ================== GASTO ==================
@@ -220,19 +215,15 @@ async function registrarGasto(){
 
   if(!monto || monto <= 0) return alert("Monto inválido");
 
-  try{
-    let res = await fetch(API + '/caja/gasto',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ monto, motivo })
-    });
+  let res = await fetch('http://localhost:3000/caja/gasto',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ monto, motivo })
+  });
 
-    let data = await res.json();
-    alert(data.error || "Gasto registrado ✔");
+  let data = await res.json();
 
-  }catch{
-    alert("❌ Error conexión");
-  }
+  alert(data.error || "Gasto registrado ✔");
 
   document.getElementById('gasto').value = "";
   document.getElementById('motivo').value = "";
@@ -242,6 +233,7 @@ async function registrarGasto(){
 
 // ================== IMPRIMIR ==================
 function imprimirFactura(data){
+
   let ventana = window.open("", "_blank", "width=400,height=600");
 
   ventana.document.write(`
@@ -298,27 +290,22 @@ async function cerrar(){
   if(!montoReal || isNaN(montoReal)) return alert("Monto inválido");
   if(!dejar || isNaN(dejar)) dejar = 0;
 
-  try{
-    let res = await fetch(API + '/caja/cerrar',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ 
-        montoReal: Number(montoReal),
-        dejar: Number(dejar)
-      })
-    });
+  let res = await fetch('http://localhost:3000/caja/cerrar',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ 
+      montoReal: Number(montoReal),
+      dejar: Number(dejar)
+    })
+  });
 
-    let data = await res.json();
+  let data = await res.json();
 
-    if(!data.error){
-      imprimirFactura(data);
-      alert("Caja cerrada ✔");
-    } else {
-      alert(data.error);
-    }
-
-  }catch{
-    alert("❌ Error conexión");
+  if(!data.error){
+    imprimirFactura(data);
+    alert("Caja cerrada ✔");
+  } else {
+    alert(data.error);
   }
 
   cargar();
