@@ -274,19 +274,18 @@ app.post('/ventas', async (req, res) => {
   }
 
   // ================= CREDITO =================
-  if (req.body.tipo === "credito") {
+   if (req.body.tipo === "credito") {
 
     await new Deuda({
-      cliente: req.body.cliente,
-      cedula: req.body.cedula || "SIN CÉDULA",
-      celular: req.body.celular || "", // 🔥 FIX
-      direccion: "",
-      total: req.body.total,
-      pagado: 0,
-      productos: req.body.productos || [],
-      pagos: []
+     cliente: req.body.cliente,
+     cedula: req.body.cedula || "SIN CÉDULA",
+     celular: req.body.celular || "",
+     direccion: req.body.direccion || "",
+     total: req.body.total,
+     pagado: 0,
+     productos: req.body.productos || [],
+     pagos: []
     }).save();
-
   }
 
   res.json({ ok: true });
