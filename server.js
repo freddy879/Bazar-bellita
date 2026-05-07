@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { Caja } = require('./Caja');
 
 const app = express(); // 👈 PRIMERO CREAS app
 
@@ -72,16 +73,33 @@ const Deuda = mongoose.model('Deuda', {
 
   fecha: { type: Date, default: Date.now }
 });
+exports.Deuda = Deuda;
 
 
 app.get('/deudas', async (req, res) => {
   res.json(await Deuda.find().sort({ fecha: -1 }));
 });
 
+
+// ================== ELIMINAR DEUDA ==================
 app.delete('/deudas/:id', async (req, res) => {
-  await Deuda.findByIdAndDelete(req.params.id);
-  res.json({ ok: true });
+
+  try {
+
+    await Deuda.findByIdAndDelete(req.params.id);
+
+    res.json({ ok: true });
+
+  } catch(err){
+
+    console.log(err);
+    res.status(500).json({ error: "Error al eliminar" });
+
+  }
+
 });
+
+
 // ================== CAJA ==================
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -91,46 +109,31 @@ app.get('/health', (req, res) => {
   });
 });
 
-const Caja = mongoose.model('Caja', {
-  fecha: { type: Date, default: Date.now },
-  horaCierre: Date,
-  apertura: Number,
-  cierre: Number,
-  ingresos: { type: Number, default: 0 },
-  gastos: { type: Number, default: 0 },
-  activa: { type: Boolean, default: false },
-
-  movimientos: [
-    {
-      tipo: String,
-      monto: Number,
-      motivo: String,
-      fecha: { type: Date, default: Date.now }
-    }
-  ],
-
-  dejado: { type: Number, default: 0 }
-});
-
 // ================== EDITAR DEUDA ==================
-app.put('/deudas/editar', async (req, res) => {
+app.put('/deudas/:id', async (req, res) => {
+
   try {
-    const { id, cedula, celular } = req.body;
 
-    let deuda = await Deuda.findById(id);
-    if (!deuda) return res.json({ error: "No encontrada" });
-
-    deuda.cedula = cedula;
-    deuda.celular = celular;
-
-    await deuda.save();
+    await Deuda.findByIdAndUpdate(
+      req.params.id,
+      {
+        cliente: req.body.cliente,
+        cedula: req.body.cedula,
+        celular: req.body.celular,
+        direccion: req.body.direccion,
+        total: req.body.total
+      }
+    );
 
     res.json({ ok: true });
 
-  } catch (err) {
+  } catch(err){
+
     console.log(err);
-    res.status(500).json({ error: "Error al editar" });
+    res.status(500).json({ error: "Error al editar deuda" });
+
   }
+
 });
 
 // ================== CLIENTES ==================
