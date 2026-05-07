@@ -110,31 +110,37 @@ app.get('/health', (req, res) => {
 });
 
 // ================== EDITAR DEUDA ==================
-app.put('/deudas/:id', async (req, res) => {
+async function editarDeuda(id) {
 
-  try {
+  let cliente = prompt("Cliente:");
+  let cedula = prompt("Cédula:");
+  let celular = prompt("Celular:");
+  let direccion = prompt("Dirección:");
+  let total = prompt("Total:");
 
-    await Deuda.findByIdAndUpdate(
-      req.params.id,
-      {
-        cliente: req.body.cliente,
-        cedula: req.body.cedula,
-        celular: req.body.celular,
-        direccion: req.body.direccion,
-        total: req.body.total
-      }
-    );
+  const res = await fetch(`${URL}/deudas/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      cliente,
+      cedula,
+      celular,
+      direccion,
+      total
+    })
+  });
 
-    res.json({ ok: true });
+  const data = await res.json();
 
-  } catch(err){
-
-    console.log(err);
-    res.status(500).json({ error: "Error al editar deuda" });
-
+  if(data.ok){
+    alert("Deuda editada");
+    cargarDeudas();
+  } else {
+    alert("Error");
   }
-
-});
+}
 
 // ================== CLIENTES ==================
 const Cliente = mongoose.model('Cliente', {
