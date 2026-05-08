@@ -238,64 +238,63 @@ async function agregar(){
 //=========EDITAR====
 async function editar(id){
 
-  let d = deudas.find(x => x._id === id);
-
-  if(!d) return;
-
-  let clienteNuevo = prompt("Nombre:", d.cliente);
-  if(clienteNuevo === null) return;
-
-  let cedulaNueva = prompt("Cédula:", d.cedula || "");
-  if(cedulaNueva === null) return;
-
-  let celularNuevo = prompt("Celular:", d.celular || "");
-  if(celularNuevo === null) return;
-
-  let totalNuevo = prompt("Monto:", d.total);
-  if(totalNuevo === null) return;
-
-  totalNuevo = Number(totalNuevo);
-
-  if(isNaN(totalNuevo)){
-    return alert("Monto inválido");
-  }
-
   try {
 
+    let d = deudas.find(x => x._id === id);
+
+    if(!d){
+      alert("No encontrada");
+      return;
+    }
+
+    let clienteNuevo = prompt("Nombre:", d.cliente);
+    if(clienteNuevo === null) return;
+
+    let cedulaNueva = prompt("Cédula:", d.cedula || "");
+    if(cedulaNueva === null) return;
+
+    let celularNuevo = prompt("Celular:", d.celular || "");
+    if(celularNuevo === null) return;
+
+    let totalNuevo = prompt("Monto:", d.total);
+    if(totalNuevo === null) return;
+
+    totalNuevo = Number(totalNuevo);
+
+    if(isNaN(totalNuevo)){
+      alert("Monto inválido");
+      return;
+    }
+
     const res = await fetch(API + '/deudas/' + id, {
-  method: "PUT",
-  headers: {
-    "Content-Type":"application/json"
-  },
-  body: JSON.stringify({
-    cliente: clienteNuevo,
-    cedula: cedulaNueva,
-    celular: celularNuevo,
-    total: totalNuevo
-  })
-});
+      method: "PUT",
+      headers: {
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        cliente: clienteNuevo,
+        cedula: cedulaNueva,
+        celular: celularNuevo,
+        total: totalNuevo
+      })
+    });
 
-const data = await res.json();
+    const texto = await res.text();
 
-console.log(data);
+    console.log(texto);
 
-if(data.error){
-  alert(data.error);
-  return;
-}
+    alert("Editado correctamente");
 
-alert("Editado correctamente");
-
-cargar();
+    cargar();
 
   } catch(err){
 
     console.log(err);
-    alert("Error al editar");
+
+    alert("Error: " + err.message);
 
   }
 }
-
 // ================= MOSTRAR =================
 function mostrar(lista){
 
