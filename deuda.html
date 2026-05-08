@@ -235,13 +235,73 @@ async function agregar(){
   cargar();
 }
 
+//=========EDITAR====
+async function editar(id){
 
+  let d = deudas.find(x => x._id === id);
+
+  if(!d) return;
+
+  let clienteNuevo = prompt("Nombre:", d.cliente);
+  if(clienteNuevo === null) return;
+
+  let cedulaNueva = prompt("Cédula:", d.cedula || "");
+  if(cedulaNueva === null) return;
+
+  let celularNuevo = prompt("Celular:", d.celular || "");
+  if(celularNuevo === null) return;
+
+  let totalNuevo = prompt("Monto:", d.total);
+  if(totalNuevo === null) return;
+
+  totalNuevo = Number(totalNuevo);
+
+  if(isNaN(totalNuevo)){
+    return alert("Monto inválido");
+  }
+
+  try {
+
+    const res = await fetch(API + '/deudas/' + id, {
+  method: "PUT",
+  headers: {
+    "Content-Type":"application/json"
+  },
+  body: JSON.stringify({
+    cliente: clienteNuevo,
+    cedula: cedulaNueva,
+    celular: celularNuevo,
+    total: totalNuevo
+  })
+});
+
+const data = await res.json();
+
+console.log(data);
+
+if(data.error){
+  alert(data.error);
+  return;
+}
+
+alert("Editado correctamente");
+
+cargar();
+
+  } catch(err){
+
+    console.log(err);
+    alert("Error al editar");
+
+  }
+}
 
 // ================= MOSTRAR =================
 function mostrar(lista){
 
   let tabla = document.getElementById("tabla");
-  tabla.innerHTML = "";
+
+  let html = "";
 
   lista.forEach(d => {
 
@@ -261,36 +321,67 @@ function mostrar(lista){
         ).join("<br>")
       : "Sin pagos";
 
-    tabla.innerHTML += `
+    // 🔥 mensaje whatsapp
+    let mensaje = encodeURIComponent(
+`Hola ${d.cliente}, le saluda Locales Bellita.
+
+Le recordamos que mantiene una deuda pendiente de $${restante}.
+
+Gracias por su atención.`
+    );
+
+    // 🔥 convertir 09 a 593
+    let numero = (d.celular || "").replace(/^0/, "593");
+
+    html += `
       <tr>
         <td>${d.cliente}</td>
+
         <td>${d.cedula || "-"}</td>
-        <td>${d.celular || "-"}</td>
+
+        <td>
+          ${d.celular || "-"}
+
+          <a 
+            href="https://wa.me/${numero}?text=${mensaje}" 
+            target="_blank"
+            style="text-decoration:none;"
+          >
+            📱
+          </a>
+        </td>
+
         <td>$${d.total}</td>
         <td>$${pagado}</td>
         <td>$${restante}</td>
         <td>${estado}</td>
+
         <td>
-          <input id="abono${d._id}" style="width:80px">
-          <button onclick="abonar('${d._id}')">💰</button>
-          <button onclick="toggleDetalle('${d._id}')">📄</button>
-          <button onclick="eliminar('${d._id}')">🗑</button>
+         <input id="abono${d._id}" style="width:80px">
+         <button onclick="abonar('${d._id}')">💰</button>
+         <button onclick="editar('${d._id}')">✏️</button>
+         <button onclick="toggleDetalle('${d._id}')">📄</button>
+         <button onclick="eliminar('${d._id}')">🗑</button>
         </td>
       </tr>
 
       <tr id="detalle-${d._id}" style="display:none; background:#f9f9f9;">
         <td colspan="8" style="text-align:left;">
+
           <b>📦 Productos:</b><br>
           ${productos}<br><br>
 
           <b>💰 Pagos:</b><br>
           ${pagos}
+
         </td>
       </tr>
     `;
   });
-}
 
+  tabla.innerHTML = html;
+}
+//=============ABRIR DETALLE =====
 function toggleDetalle(id){
   let fila = document.getElementById("detalle-" + id);
 
