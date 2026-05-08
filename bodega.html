@@ -154,9 +154,13 @@ const API = location.hostname === "localhost"
   : "https://bazar-bellita.onrender.com";
 
 let productos = [];
-  function filtrar(){
+//=======FLTRAR======
+function filtrar(){
 
-  let t = document.getElementById("buscar").value.toLowerCase();
+  let t = document.getElementById("buscar")
+    .value
+    .toLowerCase()
+    .trim();
 
   const filtrados = productos.filter(p =>
     (p.nombre || "").toLowerCase().includes(t) ||
@@ -164,10 +168,21 @@ let productos = [];
   );
 
   const tabla = document.getElementById('tabla');
-  tabla.innerHTML = '';
+
+  if(filtrados.length === 0){
+    tabla.innerHTML = `
+      <tr>
+        <td colspan="6">No hay productos</td>
+      </tr>
+    `;
+    return;
+  }
+
+  let html = "";
 
   filtrados.forEach(p => {
-    tabla.innerHTML += `
+
+    html += `
       <tr>
         <td>${p.codigo || '-'}</td>
         <td>${p.nombre}</td>
@@ -175,17 +190,23 @@ let productos = [];
         <td>$${p.precioVenta}</td>
         <td>${p.stock}</td>
         <td>
-          <button onclick="editar('${p._id}')">✏️ Editar</button>
-          <button onclick="agregarStock('${p._id}')">➕ Stock</button>
-          <button onclick="eliminar('${p._id}')">🗑️</button>
+          <button onclick="editar('${p._id}')">
+            ✏️ Editar
+          </button>
+
+          <button onclick="agregarStock('${p._id}')">
+            ➕ Stock
+          </button>
+
+          <button onclick="eliminar('${p._id}')">
+            🗑️
+          </button>
         </td>
       </tr>
     `;
   });
 
-  if(filtrados.length === 0){
-    tabla.innerHTML = `<tr><td colspan="6">No hay productos</td></tr>`;
-  }
+  tabla.innerHTML = html;
 }
 
 // ================= CARGAR =================
@@ -318,4 +339,5 @@ cargar();
 </script>
 
 </body>
+</html>
 </html>
