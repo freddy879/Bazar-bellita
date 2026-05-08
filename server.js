@@ -110,37 +110,43 @@ app.get('/health', (req, res) => {
 });
 
 // ================== EDITAR DEUDA ==================
-async function editarDeuda(id) {
+app.put('/deudas/:id', async (req, res) => {
 
-  let cliente = prompt("Cliente:");
-  let cedula = prompt("Cédula:");
-  let celular = prompt("Celular:");
-  let direccion = prompt("Dirección:");
-  let total = prompt("Total:");
+  try {
 
-  const res = await fetch(`${URL}/deudas/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      cliente,
-      cedula,
-      celular,
-      direccion,
-      total
-    })
-  });
+    const deuda = await Deuda.findById(req.params.id);
 
-  const data = await res.json();
+    if(!deuda){
+      return res.status(404).json({
+        error: "Deuda no encontrada"
+      });
+    }
 
-  if(data.ok){
-    alert("Deuda editada");
-    cargarDeudas();
-  } else {
-    alert("Error");
+    deuda.cliente = req.body.cliente || deuda.cliente;
+    deuda.cedula = req.body.cedula || deuda.cedula;
+    deuda.celular = req.body.celular || deuda.celular;
+    deuda.direccion = req.body.direccion || deuda.direccion;
+    deuda.total = Number(req.body.total || deuda.total);
+
+    await deuda.save();
+
+    res.json({
+      ok: true,
+      mensaje: "Deuda editada correctamente",
+      deuda
+    });
+
+  } catch(err){
+
+    console.log(err);
+
+    res.status(500).json({
+      error: "Error al editar deuda"
+    });
+
   }
-}
+
+});
 
 // ================== CLIENTES ==================
 const Cliente = mongoose.model('Cliente', {
