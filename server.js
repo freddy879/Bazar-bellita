@@ -121,13 +121,27 @@ app.put('/deudas/:id', async (req, res) => {
         error: "Deuda no encontrada"
       });
     }
+    if(req.body.cliente !== undefined){
+    deuda.cliente = req.body.cliente;
+    }
 
-    deuda.cliente = req.body.cliente || deuda.cliente;
-    deuda.cedula = req.body.cedula || deuda.cedula;
-    deuda.celular = req.body.celular || deuda.celular;
-    deuda.direccion = req.body.direccion || deuda.direccion;
-    deuda.total = Number(req.body.total || deuda.total);
+   if(req.body.cedula !== undefined){
+   deuda.cedula = req.body.cedula;
+   }
 
+   if(req.body.celular !== undefined){
+   deuda.celular = req.body.celular;
+   }
+
+   if(req.body.direccion !== undefined){
+   deuda.direccion = req.body.direccion;
+   }
+
+   if(req.body.total !== undefined){
+  deuda.total = Number(req.body.total);
+  }
+
+ 
     await deuda.save();
 
     res.json({
