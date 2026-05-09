@@ -305,25 +305,37 @@ app.post('/clientes/abonar', async (req, res) => {
   }
 });
 
+
 // ================= EDITAR CLIENTE =================
-const { id, nombre, cedula, telefono, correo } = req.body;
+app.put('/clientes/editar', async (req, res) => {
 
-let cliente = await Cliente.findById(id);
-if (!cliente) return res.json({ error: "No encontrado" });
+  try {
 
-cliente.nombre = nombre;
-cliente.cedula = cedula;
-cliente.telefono = telefono;
-cliente.correo = correo;
+    const { id, nombre, cedula, telefono, correo } = req.body;
 
-await cliente.save();
+    let cliente = await Cliente.findById(id);
 
-res.json({ ok: true });
+    if (!cliente) {
+      return res.json({ error: "No encontrado" });
+    }
+
+    cliente.nombre = nombre;
+    cliente.cedula = cedula;
+    cliente.telefono = telefono;
+    cliente.correo = correo;
+
+    await cliente.save();
+
+    res.json({ ok: true });
 
   } catch (err) {
+
     console.log(err);
+
     res.status(500).json({ error: "Error al editar cliente" });
+
   }
+
 });
 
 // ================== PRODUCTOS ==================
