@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const { Caja } = require('./Caja');
+const { Caja } = require('./caja');
 
 const app = express(); // 👈 PRIMERO CREAS app
 
