@@ -50,8 +50,7 @@ const Venta = mongoose.model('Venta', {
   total: Number,
   tipo: String,
   meses: Number,
-  fecha: { type: Date, default: Date.now },
-  codigoTransferencia: String
+  fecha: { type: Date, default: Date.now }
 });
 
 // ================== DEUDAS ==================
@@ -385,7 +384,6 @@ app.post('/ventas', async (req, res) => {
   // 🔥 GUARDAR VENTA
   await new Venta(req.body).save();
 
-
   // ================= EFECTIVO =================
   if (req.body.tipo === "efectivo") {
 
@@ -404,25 +402,7 @@ app.post('/ventas', async (req, res) => {
       await caja.save();
     }
   }
-// ================= TRANSFERENCIA =================
-if (req.body.tipo === "transferencia") {
 
-  let caja = await Caja.findOne({ activa: true });
-
-  if (caja) {
-    caja.ingresos += Number(req.body.total || 0);
-
-    if (!caja.movimientos) caja.movimientos = [];
-
-    caja.movimientos.push({
-      tipo: "transferencia",
-      monto: req.body.total,
-      motivo: "Venta por transferencia"
-    });
-
-    await caja.save();
-  }
-}
   // ================= CREDITO =================
    if (req.body.tipo === "credito") {
 
@@ -516,53 +496,73 @@ app.post('/deudas/pagar', async (req, res) => {
   });
 });
 
-
-
 // ================== CAJA ==================
-app.get('/caja', async (req, res) => {
-  try {
+app.post('/caja/abrir', async (req, res) => {
 
-    let caja = await Caja.findOne({ activa: true });
+  let monto = Number(req.body.monto);
 
-    if (!caja) {
-      return res.json({
-        apertura: 0,
-        ingresos: 0,
-        gastos: 0,
-        saldo: 0,
-        movimientos: [],
-        dejado: 0
-      });
-    }
+  let abierta = await Caja.findOne({ activa: true });
 
-    const ingresosTransferencia = caja.movimientos
-      .filter(m => m.tipo === "transferencia")
-      .reduce((a, b) => a + Number(b.monto), 0);
-
-    const ingresosEfectivo = caja.movimientos
-      .filter(m => m.tipo === "ingreso")
-      .reduce((a, b) => a + Number(b.monto), 0);
-
-    const gastos = caja.movimientos
-      .filter(m => m.tipo === "gasto")
-      .reduce((a, b) => a + Number(b.monto), 0);
-
-    const ingresos = ingresosTransferencia + ingresosEfectivo;
-
-    res.json({
-      apertura: caja.apertura || 0,
-      ingresos,
-      gastos,
-      saldo: (caja.apertura || 0) + ingresos - gastos,
-      movimientos: caja.movimientos || [],
-      dejado: caja.dejado || 0
-    });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error al obtener caja" });
+  if (abierta) {
+    abierta.activa = false;
+    abierta.horaCierre = new Date();
+    await abierta.save();
   }
+
+  await new Caja({
+    apertura: monto,
+    ingresos: 0,
+    gastos: 0,
+    activa: true,
+    movimientos: [
+      {
+        tipo: "inicio",
+        monto,
+        motivo: "Apertura de caja"
+      }
+    ]
+  }).save();
+
+  res.json({ ok: true });
 });
+
+app.get('/caja', async (req, res) => {
+  let caja = await Caja.findOne({ activa: true });
+  if (!caja) return res.json(null);
+
+  res.json({
+    apertura: caja.apertura,
+    ingresos: caja.ingresos,
+    gastos: caja.gastos,
+    saldo: caja.apertura + caja.ingresos - caja.gastos,
+    movimientos: caja.movimientos || [],
+    dejado: caja.dejado || 0
+  });
+});
+
+app.post('/caja/gasto', async (req, res) => {
+  let caja = await Caja.findOne({ activa: true });
+
+  if (!caja) return res.json({ error: "Caja no abierta" });
+
+  let monto = Number(req.body.monto || 0);
+  let motivo = req.body.motivo || "Sin motivo";
+
+  caja.gastos += monto;
+
+  if (!caja.movimientos) caja.movimientos = [];
+
+  caja.movimientos.push({
+    tipo: "gasto",
+    monto,
+    motivo
+  });
+
+  await caja.save();
+
+  res.json({ ok: true });
+});
+
 // ================== CIERRE CAJA ==================
 app.post('/caja/cerrar', async (req, res) => {
 
