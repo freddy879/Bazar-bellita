@@ -282,9 +282,47 @@ app.delete('/productos/:id', async (req, res) => {
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
 
-  // 🔥 GUARDAR VENTA
-  await new Venta(req.body).save();
+  try {
 
+    // 🔥 1. GUARDAR VENTA
+    const venta = new Venta(req.body);
+    await venta.save();
+
+    // 🔥 2. BUSCAR CAJA ACTIVA
+    const caja = await Caja.findOne();
+
+    if (!caja) {
+      return res.status(400).json({ error: "No hay caja abierta" });
+    }
+
+    const total = req.body.total;
+
+    // 🔥 3. SEGÚN TIPO DE PAGO ACTUALIZA CAJA
+
+    if (req.body.tipo === "efectivo") {
+      caja.ingresos = (caja.ingresos || 0) + total;
+    }
+
+    if (req.body.tipo === "credito") {
+      caja.credito = (caja.credito || 0) + total;
+    }
+
+    if (req.body.tipo === "transferencia") {
+      caja.transferencias = (caja.transferencias || 0) + total;
+    }
+
+    // 🔥 4. GUARDAR CAJA
+    await caja.save();
+
+    // 🔥 RESPUESTA
+    res.json({ ok: true, mensaje: "Venta registrada" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+
+});
   // ================= EFECTIVO =================
   if (req.body.tipo === "efectivo") {
 
