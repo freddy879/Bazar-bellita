@@ -44,6 +44,7 @@
       <input id="nombre" placeholder="Nombre">
       <input id="cedula" placeholder="Cédula">
       <input id="telefono" placeholder="Teléfono">
+      <input id="correo" placeholder="Correo">
 
       <button onclick="guardar()">Guardar</button>
     </div>
@@ -57,6 +58,7 @@
             <th>Nombre</th>
             <th>Cédula</th>
             <th>Teléfono</th>
+            <th>correo</th>
             <th>Acción</th>
           </tr>
         </thead>
@@ -74,7 +76,7 @@ const API = window.location.origin.includes("localhost")
   ? "http://localhost:3000"
   : "https://bazar-bellita.onrender.com";
 
-// ================= CARGAR =================
+//======Cargar======
 async function cargar(){
   try{
     const res = await fetch(API + '/clientes');
@@ -83,7 +85,7 @@ async function cargar(){
     tabla.innerHTML = "";
 
     if(!data.length){
-      tabla.innerHTML = "<tr><td colspan='4'>Sin clientes</td></tr>";
+      tabla.innerHTML = "<tr><td colspan='5'>Sin clientes</td></tr>";
       return;
     }
 
@@ -93,8 +95,9 @@ async function cargar(){
           <td>${c.nombre}</td>
           <td>${c.cedula}</td>
           <td>${c.telefono || "-"}</td>
+          <td>${c.correo || "-"}</td>
           <td>
-            <button onclick="editar('${c._id}','${c.nombre}','${c.cedula}','${c.telefono || ""}')">✏️</button>
+            <button onclick="editar('${c._id}','${c.nombre}','${c.cedula}','${c.telefono || ""}','${c.correo || ""}')">✏️</button>
             <button onclick="eliminar('${c._id}')">🗑</button>
           </td>
         </tr>
@@ -106,7 +109,6 @@ async function cargar(){
     alert("❌ No conecta con el servidor");
   }
 }
-
 // ================= GUARDAR =================
 async function guardar(){
 
@@ -118,21 +120,24 @@ async function guardar(){
     method:"POST",
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
-      nombre:nombre.value,
-      cedula:cedula.value,
-      telefono:telefono.value
+      nombre: nombre.value,
+      cedula: cedula.value,
+      telefono: telefono.value,
+      correo: correo.value
     })
   });
 
-  nombre.value="";
-  cedula.value="";
-  telefono.value="";
+  nombre.value = "";
+  cedula.value = "";
+  telefono.value = "";
+  correo.value = "";
 
   cargar();
 }
+  
 
 // ================= EDITAR =================
-async function editar(id,nombreActual,cedulaActual,telefonoActual){
+async function editar(id,nombreActual,cedulaActual,telefonoActual,correoActual){
 
   let n = prompt("Nombre:",nombreActual);
   if(n===null) return;
@@ -143,15 +148,23 @@ async function editar(id,nombreActual,cedulaActual,telefonoActual){
   let t = prompt("Teléfono:",telefonoActual);
   if(t===null) return;
 
-  await fetch(API + '/clientes/editar',{
+  let e = prompt("Correo:",correoActual);
+  if(e===null) return;
+
+  await fetch(API + '/clientes/editar', {
     method:'PUT',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id, nombre:n, cedula:c, telefono:t })
+    body: JSON.stringify({
+      id,
+      nombre:n,
+      cedula:c,
+      telefono:t,
+      correo:e
+    })
   });
 
   cargar();
 }
-
 // ================= ELIMINAR =================
 async function eliminar(id){
 
