@@ -279,6 +279,7 @@ app.delete('/productos/:id', async (req, res) => {
   }
 });
 
+// ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
 
   try {
@@ -309,6 +310,7 @@ app.post('/ventas', async (req, res) => {
 
     // ================= CRÉDITO =================
     if (req.body.tipo === "credito") {
+
       caja.credito = (caja.credito || 0) + total;
 
       await new Deuda({
