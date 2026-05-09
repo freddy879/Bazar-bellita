@@ -100,15 +100,6 @@ app.delete('/deudas/:id', async (req, res) => {
 });
 
 
-// ================== CAJA ==================
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    ok: true,
-    message: "Servidor activo",
-    time: new Date()
-  });
-});
-
 // ================== EDITAR DEUDA ==================
 app.put('/deudas/:id', async (req, res) => {
 
