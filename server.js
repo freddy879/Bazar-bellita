@@ -402,7 +402,25 @@ app.post('/ventas', async (req, res) => {
       await caja.save();
     }
   }
+// ================= TRANSFERENCIA =================
+if (req.body.tipo === "transferencia") {
 
+  let caja = await Caja.findOne({ activa: true });
+
+  if (caja) {
+    caja.ingresos += Number(req.body.total || 0);
+
+    if (!caja.movimientos) caja.movimientos = [];
+
+    caja.movimientos.push({
+      tipo: "ingreso",
+      monto: req.body.total,
+      motivo: "Transferencia"
+    });
+
+    await caja.save();
+  }
+}
   // ================= CREDITO =================
    if (req.body.tipo === "credito") {
 
