@@ -100,6 +100,15 @@ app.delete('/deudas/:id', async (req, res) => {
 });
 
 
+// ================== CAJA ==================
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    message: "Servidor activo",
+    time: new Date()
+  });
+});
+
 // ================== EDITAR DEUDA ==================
 app.put('/deudas/:id', async (req, res) => {
 
@@ -154,46 +163,145 @@ app.put('/deudas/:id', async (req, res) => {
 
 });
 
-// ================== CLIENTES ==================
+
+ // ================== CLIENTES ==================
 const Cliente = mongoose.model('Cliente', {
+
   nombre: String,
   cedula: String,
   direccion: String,
   telefono: String,
   correo: String,
+
+  deudaTotal: { type: Number, default: 0 },
+  deudaActual: { type: Number, default: 0 },
+  estado: { type: String, default: "normal" },
+
   fecha: { type: Date, default: Date.now }
+
 });
 
+
+// ================== CREAR CLIENTE ==================
 app.post('/clientes', async (req, res) => {
   try {
-    await new Cliente(req.body).save();
-    res.json({ ok: true });
+
+    const cliente = new Cliente(req.body);
+    await cliente.save();
+
+    res.json({ ok: true, cliente });
+
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Error al guardar cliente" });
   }
 });
 
+
+// ================== LISTAR CLIENTES ==================
 app.get('/clientes', async (req, res) => {
-  res.json(await Cliente.find().sort({ fecha: -1 }));
+  try {
+    const clientes = await Cliente.find().sort({ fecha: -1 });
+    res.json(clientes);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json([]);
+  }
 });
 
+
+// ================== BUSCAR CLIENTE POR CÉDULA ==================
 app.get('/clientes/:cedula', async (req, res) => {
-  const cliente = await Cliente.findOne({ cedula: req.params.cedula });
-  res.json(cliente);
+  try {
+    const cliente = await Cliente.findOne({ cedula: req.params.cedula });
+    res.json(cliente || null);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(null);
+  }
 });
 
+
+// ================== ELIMINAR CLIENTE ==================
 app.delete('/clientes/:id', async (req, res) => {
   try {
+
     const cliente = await Cliente.findById(req.params.id);
-    if (!cliente) return res.json({ error: "Cliente no encontrado" });
+
+    if (!cliente) {
+      return res.json({ error: "Cliente no encontrado" });
+    }
 
     await Cliente.findByIdAndDelete(req.params.id);
+
     res.json({ ok: true });
 
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Error interno" });
+  }
+});
+
+
+// ================== 🔥 SINCRONIZAR DEUDA (IMPORTANTE) ==================
+// 👉 LLÁMALO DESDE /deudas o /ventas cuando creas deuda
+
+app.post('/clientes/sumar-deuda', async (req, res) => {
+
+  try {
+
+    const { cedula, total } = req.body;
+
+    const cliente = await Cliente.findOne({ cedula });
+
+    if (!cliente) {
+      return res.status(404).json({ error: "Cliente no encontrado" });
+    }
+
+    cliente.deudaTotal += Number(total);
+    cliente.deudaActual += Number(total);
+    cliente.estado = "deudor";
+
+    await cliente.save();
+
+    res.json({ ok: true, cliente });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al actualizar deuda" });
+  }
+});
+
+
+// ================== 🔥 ABONO A DEUDA ==================
+// 👉 LLÁMALO cuando paguen deuda
+
+app.post('/clientes/abonar', async (req, res) => {
+
+  try {
+
+    const { cedula, monto } = req.body;
+
+    const cliente = await Cliente.findOne({ cedula });
+
+    if (!cliente) {
+      return res.status(404).json({ error: "Cliente no encontrado" });
+    }
+
+    cliente.deudaActual -= Number(monto);
+
+    if (cliente.deudaActual <= 0) {
+      cliente.deudaActual = 0;
+      cliente.estado = "normal";
+    }
+
+    await cliente.save();
+
+    res.json({ ok: true, cliente });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al abonar deuda" });
   }
 });
 
@@ -273,113 +381,46 @@ app.delete('/productos/:id', async (req, res) => {
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
 
-  try {
+  // 🔥 GUARDAR VENTA
+  await new Venta(req.body).save();
 
-    const venta = new Venta(req.body);
-    await venta.save();
+  // ================= EFECTIVO =================
+  if (req.body.tipo === "efectivo") {
 
     let caja = await Caja.findOne({ activa: true });
 
-    if (!caja) {
-      return res.status(400).json({ error: "No hay caja abierta" });
-    }
+    if (caja) {
+      caja.ingresos += Number(req.body.total || 0);
 
-    const total = Number(req.body.total || 0);
-
-    if (!caja.movimientos) caja.movimientos = [];
-
-    // ================= EFECTIVO =================
-    if (req.body.tipo === "efectivo") {
-      caja.ingresos += total;
-
+      if (!caja.movimientos) caja.movimientos = [];
       caja.movimientos.push({
         tipo: "ingreso",
-        monto: total,
-        motivo: "Venta efectivo"
+        monto: req.body.total,
+        motivo: "Venta"
       });
+
+      await caja.save();
     }
-
-    // ================= CRÉDITO =================
-    if (req.body.tipo === "credito") {
-
-      caja.credito = (caja.credito || 0) + total;
-
-      await new Deuda({
-        cliente: req.body.cliente,
-        cedula: req.body.cedula || "-",
-        celular: req.body.celular || "",
-        direccion: req.body.direccion || "",
-        total,
-        pagado: 0,
-        productos: req.body.productos || [],
-        pagos: []
-      }).save();
-
-      caja.movimientos.push({
-        tipo: "credito",
-        monto: total,
-        motivo: "Venta a crédito"
-      });
-    }
-
-    // ================= TRANSFERENCIA =================
-    if (req.body.tipo === "transferencia") {
-      caja.transferencias = (caja.transferencias || 0) + total;
-
-      caja.movimientos.push({
-        tipo: "ingreso",
-        monto: total,
-        motivo: "Transferencia"
-      });
-    }
-
-    await caja.save();
-
-    res.json({ ok: true, mensaje: "Venta registrada" });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message });
   }
 
-});
+  // ================= CREDITO =================
+   if (req.body.tipo === "credito") {
 
-    // ================= CAJA =================
-    let caja = await Caja.findOne({ activa: true });
-
-    if (!caja) {
-      return res.status(400).json({ error: "No hay caja abierta" });
-    }
-
-    const total = Number(req.body.total || 0);
-
-    // inicializar movimientos si no existe
-    if (!caja.movimientos) caja.movimientos = [];
-
-
-
-    // ================= TRANSFERENCIA =================
-    if (req.body.tipo === "transferencia") {
-      caja.transferencias = (caja.transferencias || 0) + total;
-
-      caja.movimientos.push({
-        tipo: "ingreso",
-        monto: total,
-        motivo: "Transferencia"
-      });
-    }
-
-    await caja.save();
-
-    res.json({ ok: true, mensaje: "Venta registrada" });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message });
+    await new Deuda({
+     cliente: req.body.cliente,
+     cedula: req.body.cedula || "SIN CÉDULA",
+     celular: req.body.celular || "",
+     direccion: req.body.direccion || "",
+     total: req.body.total,
+     pagado: 0,
+     productos: req.body.productos || [],
+     pagos: []
+    }).save();
   }
 
+  res.json({ ok: true });
 });
-  
+
 //-------Deuda-----------
 app.post('/deudas', async (req, res) => {
   try {
