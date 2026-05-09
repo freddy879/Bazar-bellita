@@ -43,15 +43,17 @@ const Producto = mongoose.model('Producto', {
   stock: Number
 });
 
-const Venta = mongoose.model('Venta', {
-  cliente: String,
-  cedula: String,
-  productos: Array,
-  total: Number,
-  tipo: String,
-  meses: Number,
-  fecha: { type: Date, default: Date.now }
-});
+await new Venta({
+  cliente: req.body.cliente,
+  cedula: req.body.cedula,
+  correo: req.body.correo || "",
+  celular: req.body.celular || "",
+  productos: req.body.productos,
+  total: req.body.total,
+  tipo: req.body.tipo,
+  meses: req.body.meses || 0
+}).save();
+
 
 // ================== DEUDAS ==================
 const Deuda = mongoose.model('Deuda', {
