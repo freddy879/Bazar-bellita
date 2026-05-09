@@ -279,14 +279,77 @@ app.delete('/productos/:id', async (req, res) => {
   }
 });
 
-// ================== VENTAS ==================
-// ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
 
   try {
 
     const venta = new Venta(req.body);
     await venta.save();
+
+    let caja = await Caja.findOne({ activa: true });
+
+    if (!caja) {
+      return res.status(400).json({ error: "No hay caja abierta" });
+    }
+
+    const total = Number(req.body.total || 0);
+
+    if (!caja.movimientos) caja.movimientos = [];
+
+    // ================= EFECTIVO =================
+    if (req.body.tipo === "efectivo") {
+      caja.ingresos += total;
+
+      caja.movimientos.push({
+        tipo: "ingreso",
+        monto: total,
+        motivo: "Venta efectivo"
+      });
+    }
+
+    // ================= CRÉDITO =================
+    if (req.body.tipo === "credito") {
+      caja.credito = (caja.credito || 0) + total;
+
+      await new Deuda({
+        cliente: req.body.cliente,
+        cedula: req.body.cedula || "-",
+        celular: req.body.celular || "",
+        direccion: req.body.direccion || "",
+        total,
+        pagado: 0,
+        productos: req.body.productos || [],
+        pagos: []
+      }).save();
+
+      caja.movimientos.push({
+        tipo: "credito",
+        monto: total,
+        motivo: "Venta a crédito"
+      });
+    }
+
+    // ================= TRANSFERENCIA =================
+    if (req.body.tipo === "transferencia") {
+      caja.transferencias = (caja.transferencias || 0) + total;
+
+      caja.movimientos.push({
+        tipo: "ingreso",
+        monto: total,
+        motivo: "Transferencia"
+      });
+    }
+
+    await caja.save();
+
+    res.json({ ok: true, mensaje: "Venta registrada" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+
+});
 
     // ================= CAJA =================
     let caja = await Caja.findOne({ activa: true });
