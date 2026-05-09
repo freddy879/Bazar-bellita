@@ -399,7 +399,7 @@ if (req.body.tipo === "transferencia") {
     if (!caja.movimientos) caja.movimientos = [];
 
     caja.movimientos.push({
-      tipo: "ingreso",
+      tipo: "transferencia",
       monto: req.body.total,
       motivo: "Transferencia (refuerzo)"
     });
