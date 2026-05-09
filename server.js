@@ -50,7 +50,8 @@ const Venta = mongoose.model('Venta', {
   total: Number,
   tipo: String,
   meses: Number,
-  fecha: { type: Date, default: Date.now }
+  fecha: { type: Date, default: Date.now },
+  codigoTransferencia: String
 });
 
 // ================== DEUDAS ==================
