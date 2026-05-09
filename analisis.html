@@ -47,12 +47,23 @@
       padding: 20px;
     }
 
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
     .card {
       background: white;
       padding: 15px;
-      margin-bottom: 15px;
       border-radius: 10px;
       box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    .big {
+      font-size: 22px;
+      font-weight: bold;
     }
 
     button {
@@ -85,6 +96,17 @@
       border-radius: 6px;
       border: 1px solid #ccc;
     }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      color: white;
+    }
+
+    .efectivo { background: green; }
+    .credito { background: orange; }
   </style>
 </head>
 
@@ -102,15 +124,50 @@
 
 <div class="main">
 
-  <div class="header">📊 Análisis de Ventas</div>
+  <div class="header">📊 Dashboard de Empresa</div>
 
   <div class="container">
 
-    <div class="card">
-      <h2>Total vendido</h2>
-      <h1 id="total">$0</h1>
+    <!-- DASHBOARD PRO -->
+    <div class="grid">
+
+      <div class="card">
+        <h4>💰 Total General</h4>
+        <div class="big" id="total">$0</div>
+      </div>
+
+      <div class="card">
+        <h4>📅 Ventas Hoy</h4>
+        <div class="big" id="ventasHoy">0</div>
+      </div>
+
+      <div class="card">
+        <h4>💵 Ingreso Hoy</h4>
+        <div class="big" id="ingresoHoy">$0</div>
+      </div>
+
+      <div class="card">
+        <h4>👤 Clientes</h4>
+        <div class="big" id="clientes">0</div>
+      </div>
+
     </div>
 
+    <div class="grid">
+
+      <div class="card">
+        <h4>💵 Efectivo</h4>
+        <div class="big" id="efectivo">0</div>
+      </div>
+
+      <div class="card">
+        <h4>📄 Crédito</h4>
+        <div class="big" id="credito">0</div>
+      </div>
+
+    </div>
+
+    <!-- FILTRO -->
     <div class="card">
       <h2>🔎 Buscar por fecha</h2>
 
@@ -119,9 +176,9 @@
       <button onclick="filtrarFecha()">🔍 Buscar día</button>
       <button onclick="cargar()">♻ Ver todo</button>
       <button onclick="borrarDia()">🗑 Borrar este día</button>
-
     </div>
 
+    <!-- HISTORIAL -->
     <div class="card">
       <h2>📊 Historial de ventas</h2>
       <button onclick="borrarHistorial()">🗑 Borrar historial completo</button>
@@ -129,44 +186,60 @@
     </div>
 
   </div>
-
 </div>
 
 <script>
 
-// 🔥 URL BASE (AQUÍ ESTÁ LA CLAVE)
 const API = "https://bazar-bellita.onrender.com";
 
-// ================= CARGAR TODO =================
+// ================= CARGAR =================
 async function cargar() {
 
   const res = await fetch(API + '/analisis');
-  const data = await res.json().catch(()=>({ ventas: [], totalGeneral: 0 }));
+  const data = await res.json();
+
+  let ventas = data.ventas || [];
 
   document.getElementById('total').innerText =
     "$" + (data.totalGeneral || 0).toFixed(2);
 
-  mostrarVentas(data.ventas);
+  let hoy = new Date().toISOString().split("T")[0];
+
+  let ventasHoy = ventas.filter(v =>
+    new Date(v.fecha).toISOString().split("T")[0] === hoy
+  );
+
+  let totalHoy = ventasHoy.reduce((s, v) => s + (v.total || 0), 0);
+
+  document.getElementById("ventasHoy").innerText = ventasHoy.length;
+  document.getElementById("ingresoHoy").innerText = "$" + totalHoy.toFixed(2);
+
+  let resC = await fetch(API + "/clientes");
+  let dataC = await resC.json();
+
+  document.getElementById("clientes").innerText = dataC.length || 0;
+
+  let credito = ventas.filter(v => v.tipo === "credito").length;
+  let efectivo = ventas.filter(v => v.tipo === "efectivo").length;
+
+  document.getElementById("credito").innerText = credito;
+  document.getElementById("efectivo").innerText = efectivo;
+
+  mostrarVentas(ventas);
 }
 
-// ================= MOSTRAR =================
+// ================= HISTORIAL =================
 function mostrarVentas(ventas) {
 
   let ul = document.getElementById('historial');
   ul.innerHTML = "";
 
-  if (!ventas || ventas.length === 0) {
-    ul.innerHTML = "<li>No hay ventas registradas</li>";
-    return;
-  }
-
   let agrupado = {};
 
   ventas.forEach(v => {
 
-    let fechaObj = new Date(v.fecha);
-    let fecha = fechaObj.toLocaleDateString();
-    let hora = fechaObj.toLocaleTimeString();
+    let fecha = new Date(v.fecha).toLocaleDateString();
+    let hora = new Date(v.fecha).toLocaleTimeString();
 
     if (!agrupado[fecha]) agrupado[fecha] = [];
     agrupado[fecha].push({ ...v, hora });
@@ -180,93 +253,55 @@ function mostrarVentas(ventas) {
 
       let productosHTML = "";
 
-      if (v.productos && v.productos.length > 0) {
+      if (v.productos) {
         productosHTML = "<ul>";
         v.productos.forEach(p => {
-          productosHTML += `
-            <li>📦 ${p.nombre} x${p.cantidad} - $${p.precio}</li>
-          `;
+          productosHTML += `<li>📦 ${p.nombre} x${p.cantidad}</li>`;
         });
         productosHTML += "</ul>";
-      } else {
-        productosHTML = "<i>Sin productos</i>";
       }
 
       ul.innerHTML += `
-        <li style="margin-bottom:12px;">
-          👤 <b>${v.cliente || "Sin nombre"}</b><br>
-          💰 Total: $${v.total || 0}<br>
-          🕒 Hora: ${v.hora}<br>
+        <li>
+          👤 <b>${v.cliente}</b><br>
+          📧 ${v.correo || "Sin correo"}<br>
+          📱 ${v.celular || "Sin celular"}<br>
+          🆔 ${v.cedula || "Sin cédula"}<br>
+          💰 $${v.total}<br>
+          <span class="tag ${v.tipo}">${v.tipo}</span><br>
+          🕒 ${v.hora}<br>
           ${productosHTML}
         </li>
+        <hr>
       `;
     });
   }
 }
 
-// ================= FILTRAR POR FECHA =================
+// ================= FILTRO =================
 async function filtrarFecha() {
 
   let fecha = document.getElementById("fechaFiltro").value;
 
-  if (!fecha) return alert("Selecciona una fecha");
-
   const res = await fetch(API + '/analisis');
   const data = await res.json();
 
-  let filtradas = data.ventas.filter(v => {
-    let f = new Date(v.fecha).toISOString().split("T")[0];
-    return f === fecha;
-  });
+  let filtradas = data.ventas.filter(v =>
+    new Date(v.fecha).toISOString().split("T")[0] === fecha
+  );
 
   mostrarVentas(filtradas);
 }
 
-// ================= BORRAR DÍA =================
-async function borrarDia() {
-
-  let fecha = document.getElementById("fechaFiltro").value;
-
-  if (!fecha) return alert("Selecciona una fecha");
-
-  let pass = prompt("🔐 Contraseña:");
-
-  if (pass !== "bellita123") {
-    alert("❌ Incorrecta");
-    return;
-  }
-
-  let confirmar = confirm("⚠️ ¿Borrar este día?");
-  if (!confirmar) return;
-
-  await fetch(API + '/ventas/fecha', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fecha })
-  });
-
-  alert("✅ Día eliminado");
-  cargar();
-}
-
-// ================= BORRAR TODO =================
+// ================= BORRAR =================
 async function borrarHistorial() {
 
-  let pass = prompt("🔐 Ingresa contraseña:");
+  let pass = prompt("Clave:");
 
-  if (pass !== "bellita123") {
-    alert("❌ Incorrecta");
-    return;
-  }
+  if (pass !== "bellita123") return alert("Incorrecto");
 
-  let confirmar = confirm("⚠️ ¿Seguro que quieres borrar TODO?");
-  if (!confirmar) return;
+  await fetch(API + "/ventas", { method: "DELETE" });
 
-  await fetch(API + '/ventas', {
-    method: 'DELETE'
-  });
-
-  alert("✅ Historial borrado");
   cargar();
 }
 
