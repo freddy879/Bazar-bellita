@@ -285,7 +285,27 @@ async function editar(id){
 
     console.log("RESPUESTA:", texto);
 
-    alert(texto);
+    let data;
+
+    try {
+
+      data = JSON.parse(texto);
+
+    } catch {
+
+      alert("El servidor devolvió HTML y no JSON");
+      return;
+
+    }
+
+    if(!res.ok){
+
+      alert(data.error || "Error al editar");
+      return;
+
+    }
+
+    alert(data.mensaje || "Editado correctamente");
 
     await cargar();
 
@@ -297,7 +317,6 @@ async function editar(id){
 
   }
 }
-   
 // ================= MOSTRAR =================
 function mostrar(lista){
 
