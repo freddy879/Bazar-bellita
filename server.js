@@ -113,7 +113,8 @@ app.get('/health', (req, res) => {
 app.put('/deudas/:id', async (req, res) => {
 
   try {
-
+    console.log(req.body);
+    
     const deuda = await Deuda.findById(req.params.id);
 
     if(!deuda){
