@@ -169,6 +169,7 @@ const Cliente = mongoose.model('Cliente', {
   cedula: String,
   direccion: String,
   telefono: String,
+  correo: String,
   fecha: { type: Date, default: Date.now }
 });
 
