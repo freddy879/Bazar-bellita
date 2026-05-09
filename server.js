@@ -306,20 +306,19 @@ app.post('/clientes/abonar', async (req, res) => {
 });
 
 // ================= EDITAR CLIENTE =================
-app.put('/clientes/editar', async (req, res) => {
-  try {
-    const { id, nombre, cedula, telefono } = req.body;
+const { id, nombre, cedula, telefono, correo } = req.body;
 
-    let cliente = await Cliente.findById(id);
-    if (!cliente) return res.json({ error: "No encontrado" });
+let cliente = await Cliente.findById(id);
+if (!cliente) return res.json({ error: "No encontrado" });
 
-    cliente.nombre = nombre;
-    cliente.cedula = cedula;
-    cliente.telefono = telefono;
+cliente.nombre = nombre;
+cliente.cedula = cedula;
+cliente.telefono = telefono;
+cliente.correo = correo;
 
-    await cliente.save();
+await cliente.save();
 
-    res.json({ ok: true });
+res.json({ ok: true });
 
   } catch (err) {
     console.log(err);
