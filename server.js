@@ -280,41 +280,73 @@ app.delete('/productos/:id', async (req, res) => {
 });
 
 // ================== VENTAS ==================
+// ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
 
   try {
 
-    // 🔥 1. GUARDAR VENTA
     const venta = new Venta(req.body);
     await venta.save();
 
-    // 🔥 2. BUSCAR CAJA ACTIVA
-    const caja = await Caja.findOne();
+    // ================= CAJA =================
+    let caja = await Caja.findOne({ activa: true });
 
     if (!caja) {
       return res.status(400).json({ error: "No hay caja abierta" });
     }
 
-    const total = req.body.total;
+    const total = Number(req.body.total || 0);
 
-    // 🔥 3. SEGÚN TIPO DE PAGO ACTUALIZA CAJA
+    // inicializar movimientos si no existe
+    if (!caja.movimientos) caja.movimientos = [];
 
+    // ================= EFECTIVO =================
     if (req.body.tipo === "efectivo") {
-      caja.ingresos = (caja.ingresos || 0) + total;
+      caja.ingresos += total;
+
+      caja.movimientos.push({
+        tipo: "ingreso",
+        monto: total,
+        motivo: "Venta efectivo"
+      });
     }
 
+    // ================= CRÉDITO =================
     if (req.body.tipo === "credito") {
+
       caja.credito = (caja.credito || 0) + total;
+
+      await new Deuda({
+        cliente: req.body.cliente,
+        cedula: req.body.cedula || "-",
+        celular: req.body.celular || "",
+        direccion: req.body.direccion || "",
+        total,
+        pagado: 0,
+        productos: req.body.productos || [],
+        pagos: []
+      }).save();
+
+      caja.movimientos.push({
+        tipo: "credito",
+        monto: total,
+        motivo: "Venta a crédito"
+      });
     }
 
+    // ================= TRANSFERENCIA =================
     if (req.body.tipo === "transferencia") {
       caja.transferencias = (caja.transferencias || 0) + total;
+
+      caja.movimientos.push({
+        tipo: "ingreso",
+        monto: total,
+        motivo: "Transferencia"
+      });
     }
 
-    // 🔥 4. GUARDAR CAJA
     await caja.save();
 
-    // 🔥 RESPUESTA
     res.json({ ok: true, mensaje: "Venta registrada" });
 
   } catch (err) {
@@ -323,43 +355,7 @@ app.post('/ventas', async (req, res) => {
   }
 
 });
-  // ================= EFECTIVO =================
-  if (req.body.tipo === "efectivo") {
-
-    let caja = await Caja.findOne({ activa: true });
-
-    if (caja) {
-      caja.ingresos += Number(req.body.total || 0);
-
-      if (!caja.movimientos) caja.movimientos = [];
-      caja.movimientos.push({
-        tipo: "ingreso",
-        monto: req.body.total,
-        motivo: "Venta"
-      });
-
-      await caja.save();
-    }
-  }
-
-  // ================= CREDITO =================
-   if (req.body.tipo === "credito") {
-
-    await new Deuda({
-     cliente: req.body.cliente,
-     cedula: req.body.cedula || "SIN CÉDULA",
-     celular: req.body.celular || "",
-     direccion: req.body.direccion || "",
-     total: req.body.total,
-     pagado: 0,
-     productos: req.body.productos || [],
-     pagos: []
-    }).save();
-  }
-
-  res.json({ ok: true });
-});
-
+  
 //-------Deuda-----------
 app.post('/deudas', async (req, res) => {
   try {
