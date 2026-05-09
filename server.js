@@ -385,28 +385,7 @@ app.post('/ventas', async (req, res) => {
   // 🔥 GUARDAR VENTA
   await new Venta(req.body).save();
 
-// ================= REFUERZO CAJA =================
-// (por si algún día falla el bloque principal)
 
-if (req.body.tipo === "transferencia") {
-
-  let caja = await Caja.findOne({ activa: true });
-
-  if (caja) {
-
-    caja.ingresos += Number(req.body.total || 0);
-
-    if (!caja.movimientos) caja.movimientos = [];
-
-    caja.movimientos.push({
-      tipo: "transferencia",
-      monto: req.body.total,
-      motivo: "Transferencia (refuerzo)"
-    });
-
-    await caja.save();
-  }
-}
   // ================= EFECTIVO =================
   if (req.body.tipo === "efectivo") {
 
@@ -436,9 +415,9 @@ if (req.body.tipo === "transferencia") {
     if (!caja.movimientos) caja.movimientos = [];
 
     caja.movimientos.push({
-      tipo: "ingreso",
+      tipo: "transferencia",
       monto: req.body.total,
-      motivo: "Transferencia"
+      motivo: "Venta por transferencia"
     });
 
     await caja.save();
