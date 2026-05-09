@@ -537,35 +537,7 @@ app.post('/deudas/pagar', async (req, res) => {
   });
 });
 
-// ================== CAJA ==================
-app.post('/caja/abrir', async (req, res) => {
 
-  let monto = Number(req.body.monto);
-
-  let abierta = await Caja.findOne({ activa: true });
-
-  if (abierta) {
-    abierta.activa = false;
-    abierta.horaCierre = new Date();
-    await abierta.save();
-  }
-
-  await new Caja({
-    apertura: monto,
-    ingresos: 0,
-    gastos: 0,
-    activa: true,
-    movimientos: [
-      {
-        tipo: "inicio",
-        monto,
-        motivo: "Apertura de caja"
-      }
-    ]
-  }).save();
-
-  res.json({ ok: true });
-});
 
 // ================== CAJA ==================
 app.get('/caja', async (req, res) => {
@@ -584,46 +556,34 @@ app.get('/caja', async (req, res) => {
       });
     }
 
+    const ingresosTransferencia = caja.movimientos
+      .filter(m => m.tipo === "transferencia")
+      .reduce((a, b) => a + Number(b.monto), 0);
+
+    const ingresosEfectivo = caja.movimientos
+      .filter(m => m.tipo === "ingreso")
+      .reduce((a, b) => a + Number(b.monto), 0);
+
+    const gastos = caja.movimientos
+      .filter(m => m.tipo === "gasto")
+      .reduce((a, b) => a + Number(b.monto), 0);
+
+    const ingresos = ingresosTransferencia + ingresosEfectivo;
+
     res.json({
       apertura: caja.apertura || 0,
-      ingresos: caja.ingresos || 0,
-      gastos: caja.gastos || 0,
-      saldo: (caja.apertura || 0) + (caja.ingresos || 0) - (caja.gastos || 0),
+      ingresos,
+      gastos,
+      saldo: (caja.apertura || 0) + ingresos - gastos,
       movimientos: caja.movimientos || [],
       dejado: caja.dejado || 0
     });
 
   } catch (err) {
-    console.log("Error caja:", err);
-    res.status(500).json({
-      error: "Error al obtener caja"
-    });
+    console.log(err);
+    res.status(500).json({ error: "Error al obtener caja" });
   }
 });
-
-app.post('/caja/gasto', async (req, res) => {
-  let caja = await Caja.findOne({ activa: true });
-
-  if (!caja) return res.json({ error: "Caja no abierta" });
-
-  let monto = Number(req.body.monto || 0);
-  let motivo = req.body.motivo || "Sin motivo";
-
-  caja.gastos += monto;
-
-  if (!caja.movimientos) caja.movimientos = [];
-
-  caja.movimientos.push({
-    tipo: "gasto",
-    monto,
-    motivo
-  });
-
-  await caja.save();
-
-  res.json({ ok: true });
-});
-
 // ================== CIERRE CAJA ==================
 app.post('/caja/cerrar', async (req, res) => {
 
