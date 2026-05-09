@@ -567,18 +567,38 @@ app.post('/caja/abrir', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ================== CAJA ==================
 app.get('/caja', async (req, res) => {
-  let caja = await Caja.findOne({ activa: true });
-  if (!caja) return res.json(null);
+  try {
 
-  res.json({
-    apertura: caja.apertura,
-    ingresos: caja.ingresos,
-    gastos: caja.gastos,
-    saldo: caja.apertura + caja.ingresos - caja.gastos,
-    movimientos: caja.movimientos || [],
-    dejado: caja.dejado || 0
-  });
+    let caja = await Caja.findOne({ activa: true });
+
+    if (!caja) {
+      return res.json({
+        apertura: 0,
+        ingresos: 0,
+        gastos: 0,
+        saldo: 0,
+        movimientos: [],
+        dejado: 0
+      });
+    }
+
+    res.json({
+      apertura: caja.apertura || 0,
+      ingresos: caja.ingresos || 0,
+      gastos: caja.gastos || 0,
+      saldo: (caja.apertura || 0) + (caja.ingresos || 0) - (caja.gastos || 0),
+      movimientos: caja.movimientos || [],
+      dejado: caja.dejado || 0
+    });
+
+  } catch (err) {
+    console.log("Error caja:", err);
+    res.status(500).json({
+      error: "Error al obtener caja"
+    });
+  }
 });
 
 app.post('/caja/gasto', async (req, res) => {
