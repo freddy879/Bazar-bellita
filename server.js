@@ -305,7 +305,6 @@ app.post('/clientes/abonar', async (req, res) => {
   }
 });
 
-
 // ================= EDITAR CLIENTE =================
 app.put('/clientes/editar', async (req, res) => {
 
@@ -313,31 +312,41 @@ app.put('/clientes/editar', async (req, res) => {
 
     const { id, nombre, cedula, telefono, correo } = req.body;
 
+    if (!id) {
+      return res.status(400).json({ error: "Falta ID del cliente" });
+    }
+
     let cliente = await Cliente.findById(id);
 
     if (!cliente) {
-      return res.json({ error: "No encontrado" });
+      return res.status(404).json({ error: "Cliente no encontrado" });
     }
 
-    cliente.nombre = nombre;
-    cliente.cedula = cedula;
-    cliente.telefono = telefono;
-    cliente.correo = correo;
+    // ===== ACTUALIZACIÓN SEGURA =====
+    if (nombre !== undefined) cliente.nombre = nombre;
+    if (cedula !== undefined) cliente.cedula = cedula;
+    if (telefono !== undefined) cliente.telefono = telefono;
+    if (correo !== undefined) cliente.correo = correo;
 
     await cliente.save();
 
-    res.json({ ok: true });
+    res.json({
+      ok: true,
+      mensaje: "Cliente actualizado correctamente",
+      cliente
+    });
 
   } catch (err) {
 
-    console.log(err);
+    console.log("Error editar cliente:", err);
 
-    res.status(500).json({ error: "Error al editar cliente" });
+    res.status(500).json({
+      error: "Error al editar cliente"
+    });
 
   }
 
 });
-
 // ================== PRODUCTOS ==================
 app.get('/productos', async (req, res) => {
   try {
