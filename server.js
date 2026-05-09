@@ -300,39 +300,7 @@ app.post('/ventas', async (req, res) => {
     // inicializar movimientos si no existe
     if (!caja.movimientos) caja.movimientos = [];
 
-    // ================= EFECTIVO =================
-    if (req.body.tipo === "efectivo") {
-      caja.ingresos += total;
 
-      caja.movimientos.push({
-        tipo: "ingreso",
-        monto: total,
-        motivo: "Venta efectivo"
-      });
-    }
-
-    // ================= CRÉDITO =================
-    if (req.body.tipo === "credito") {
-
-      caja.credito = (caja.credito || 0) + total;
-
-      await new Deuda({
-        cliente: req.body.cliente,
-        cedula: req.body.cedula || "-",
-        celular: req.body.celular || "",
-        direccion: req.body.direccion || "",
-        total,
-        pagado: 0,
-        productos: req.body.productos || [],
-        pagos: []
-      }).save();
-
-      caja.movimientos.push({
-        tipo: "credito",
-        monto: total,
-        motivo: "Venta a crédito"
-      });
-    }
 
     // ================= TRANSFERENCIA =================
     if (req.body.tipo === "transferencia") {
