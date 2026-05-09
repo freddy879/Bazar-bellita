@@ -279,13 +279,18 @@ async function editar(id){
       })
     });
 
-    const texto = await res.text();
+    const data = await res.json();
 
-    console.log(texto);
+    console.log(data);
 
-    alert("Editado correctamente");
+    if(!res.ok){
+      alert(data.error || "Error al editar");
+      return;
+    }
 
-    cargar();
+    alert(data.mensaje);
+
+    await cargar();
 
   } catch(err){
 
@@ -295,6 +300,8 @@ async function editar(id){
 
   }
 }
+
+   
 // ================= MOSTRAR =================
 function mostrar(lista){
 
