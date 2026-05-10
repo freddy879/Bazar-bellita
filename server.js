@@ -809,6 +809,9 @@ app.delete('/productos/:id', async (req, res) => {
   }
 });
 
+//================================================
+// ================== VENTAS ==================
+const Venta = require('./models/Venta');
 
 app.post('/ventas', async (req, res) => {
   try {
