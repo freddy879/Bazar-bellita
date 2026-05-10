@@ -619,31 +619,55 @@ app.get('/analisis', async (req, res) => {
 
   const ventas = await Venta.find();
 
-  let total = 0;
-  ventas.forEach(v => total += Number(v.total || 0));
+  let totalGeneral = 0;
+  let efectivo = 0;
+  let credito = 0;
+
+  let porDia = {};
+  let porMes = {};
+
+  ventas.forEach(v => {
+
+    let total = Number(v.total || 0);
+    totalGeneral += total;
+
+    if (v.tipo === "efectivo") efectivo += 1;
+    if (v.tipo === "credito") credito += 1;
+
+    // 📅 DIA
+    let dia = new Date(v.fecha).toISOString().split("T")[0];
+    porDia[dia] = (porDia[dia] || 0) + total;
+
+    // 📆 MES
+    let mes = new Date(v.fecha).toISOString().slice(0,7);
+    porMes[mes] = (porMes[mes] || 0) + total;
+  });
+
+  // 🤖 IA SIMPLE
+  let promedio = totalGeneral / (ventas.length || 1);
+
+  let mensajeIA = "";
+
+  if (promedio > 200) {
+    mensajeIA = "🔥 Buen nivel de ventas. Puedes invertir en más stock.";
+  } else if (promedio > 100) {
+    mensajeIA = "⚠️ Ventas medias. Mejora marketing o precios.";
+  } else {
+    mensajeIA = "🚨 Ventas bajas. Necesitas promociones urgentes.";
+  }
 
   res.json({
-    totalGeneral: total,
-    ventas
-  });
-});
-
-app.delete('/ventas/fecha', async (req, res) => {
-
-  let fecha = req.body.fecha;
-
-  let inicio = new Date(fecha);
-  let fin = new Date(fecha);
-  fin.setDate(fin.getDate() + 1);
-
-  await Venta.deleteMany({
-    fecha: {
-      $gte: inicio,
-      $lt: fin
+    totalGeneral,
+    ventas,
+    efectivo,
+    credito,
+    porDia,
+    porMes,
+    ia: {
+      promedio,
+      mensaje: mensajeIA
     }
   });
-
-  res.json({ ok: true });
 });
 
 
