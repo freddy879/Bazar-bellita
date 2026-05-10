@@ -752,6 +752,42 @@ app.get('/analisis', async (req, res) => {
     }
   });
 });
+
+
+app.delete('/ventas/dia', async (req, res) => {
+
+  try {
+
+    const { fecha } = req.body;
+
+    if (!fecha) {
+      return res.status(400).json({ error: "Falta fecha" });
+    }
+
+    // convertir fecha string a rango real de día
+    const inicio = new Date(fecha);
+    inicio.setHours(0, 0, 0, 0);
+
+    const fin = new Date(fecha);
+    fin.setHours(23, 59, 59, 999);
+
+    const resultado = await Venta.deleteMany({
+      fecha: {
+        $gte: inicio,
+        $lte: fin
+      }
+    });
+
+    res.json({
+      ok: true,
+      deleted: resultado.deletedCount
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error al borrar día" });
+  }
+});
 // ================== SERVER ==================
 const PORT = process.env.PORT || 3000;
 
