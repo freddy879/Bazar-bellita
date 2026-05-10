@@ -403,8 +403,9 @@ app.delete('/productos/:id', async (req, res) => {
   }
 });
 
+
 // ================== VENTAS ==================
-const Venta = require('./models/Venta'); // 👈 IMPORTANTE: modelo fuera del endpoint
+const Venta = require('./models/Venta');
 
 app.post('/ventas', async (req, res) => {
   try {
@@ -425,12 +426,17 @@ app.post('/ventas', async (req, res) => {
       fecha: new Date()
     });
 
-    await venta.save();
+    const guardada = await venta.save();
 
-    return res.json({ ok: true, msg: "Venta guardada correctamente" });
+    return res.json({
+      ok: true,
+      msg: "Venta guardada correctamente",
+      data: guardada
+    });
 
   } catch (err) {
-    console.log("ERROR VENTA:", err);
+
+    console.log("🔥 ERROR VENTA COMPLETO:", err);
 
     return res.status(500).json({
       ok: false,
