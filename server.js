@@ -405,24 +405,33 @@ app.delete('/productos/:id', async (req, res) => {
 
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
-  try{
-    const Venta = mongoose.model('Venta', {
-  cliente: String,
-  cedula: String,
-  correo: String,
-  celular: String,
-  productos: Array,
-  total: Number,
-  tipo: String,
-  meses: Number,
-  pago: Number,
-  vuelto: Number,
-  fecha: { type: Date, default: Date.now }
+  try {
+
+    console.log("VENTA RECIBIDA:", req.body); // 🔥 DEBUG
+
+    const venta = new Venta({
+      cliente: req.body.cliente || "",
+      cedula: req.body.cedula || "",
+      correo: req.body.correo || "",
+      celular: req.body.celular || "",
+      productos: req.body.productos || [],
+      total: Number(req.body.total || 0),
+      tipo: req.body.tipo || "efectivo",
+      meses: Number(req.body.meses || 0),
+      pago: Number(req.body.pago || 0),
+      vuelto: Number(req.body.vuelto || 0),
+      fecha: new Date()
+    });
+
+    await venta.save();
+
+    res.json({ ok: true });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Error ventas" });
+  }
 });
-
-  
-  await new Venta(req.body).save();
-
   // ================= EFECTIVO =================
   if (req.body.tipo === "efectivo") {
 
