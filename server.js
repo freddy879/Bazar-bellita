@@ -46,10 +46,18 @@ const Producto = mongoose.model('Producto', {
 const Venta = mongoose.model('Venta', {
   cliente: String,
   cedula: String,
+  celular: String,
+  correo: String,
+
   productos: Array,
+
   total: Number,
   tipo: String,
   meses: Number,
+
+  pago: Number,
+  vuelto: Number,
+
   fecha: { type: Date, default: Date.now }
 });
 
@@ -430,6 +438,7 @@ app.post('/deudas', async (req, res) => {
   cedula: req.body.cedula || "-",
   celular: req.body.celular || "",
   direccion: req.body.direccion || "",
+  correo: req.body.correo || "",
 
   total: Number(req.body.total || 0),
   pagado: 0,
