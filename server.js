@@ -614,18 +614,33 @@ app.post('/caja/cerrar', async (req, res) => {
   });
 });
 
-// ================== ANALISIS ==================
+//===========================================
 app.get('/analisis', async (req, res) => {
 
   const ventas = await Venta.find();
 
   let totalGeneral = 0;
+  let efectivo = 0;
+  let credito = 0;
+
   let productos = {};
+  let porDia = {};
+  let porMes = {};
 
   ventas.forEach(v => {
 
     let total = Number(v.total || 0);
     totalGeneral += total;
+
+    if (v.tipo === "efectivo") efectivo++;
+    if (v.tipo === "credito") credito++;
+
+    let fecha = new Date(v.fecha);
+    let dia = fecha.toISOString().split("T")[0];
+    let mes = fecha.toISOString().slice(0,7);
+
+    porDia[dia] = (porDia[dia] || 0) + total;
+    porMes[mes] = (porMes[mes] || 0) + total;
 
     if (v.productos && Array.isArray(v.productos)) {
 
@@ -652,56 +667,39 @@ app.get('/analisis', async (req, res) => {
     }
   });
 
-  // 📊 convertir a array
   let lista = Object.values(productos);
 
-  // 🔥 más vendidos
-  let masVendidos = [...lista]
-    .sort((a, b) => b.vendidos - a.vendidos)
-    .slice(0, 5);
+  let masVendidos = [...lista].sort((a,b)=>b.vendidos-a.vendidos).slice(0,5);
+  let menosVendidos = [...lista].sort((a,b)=>a.vendidos-b.vendidos).slice(0,5);
+  let masGanancia = [...lista].sort((a,b)=>b.ganancia-a.ganancia).slice(0,5);
+  let menosGanancia = [...lista].sort((a,b)=>a.ganancia-b.ganancia).slice(0,5);
 
-  // 📉 menos vendidos
-  let menosVendidos = [...lista]
-    .sort((a, b) => a.vendidos - b.vendidos)
-    .slice(0, 5);
-
-  // 💰 más ganancia
-  let masGanancia = [...lista]
-    .sort((a, b) => b.ganancia - a.ganancia)
-    .slice(0, 5);
-
-  // 💸 menos ganancia
-  let menosGanancia = [...lista]
-    .sort((a, b) => a.ganancia - b.ganancia)
-    .slice(0, 5);
-
-  // 🧠 IA de recomendaciones
   let recomendaciones = [];
 
-  if (masGanancia.length > 0) {
-    recomendaciones.push(`🔥 Enfócate en vender más: ${masGanancia[0].nombre}`);
+  if (masGanancia.length) {
+    recomendaciones.push(`🔥 Vende más: ${masGanancia[0].nombre}`);
   }
 
-  if (menosGanancia.length > 0) {
-    recomendaciones.push(`⚠️ Evita o mejora margen de: ${menosGanancia[0].nombre}`);
-  }
-
-  if (menosVendidos.length > 0) {
-    recomendaciones.push(`📦 Revisa stock o marketing de: ${menosVendidos[0].nombre}`);
+  if (menosVendidos.length) {
+    recomendaciones.push(`📦 Mejora marketing: ${menosVendidos[0].nombre}`);
   }
 
   if (totalGeneral < 1000) {
-    recomendaciones.push("🚨 Ventas bajas, necesitas promociones urgentes");
+    recomendaciones.push("🚨 Ventas bajas, haz promociones");
   } else {
-    recomendaciones.push("📊 Negocio estable, sigue optimizando productos top");
+    recomendaciones.push("📊 Negocio estable");
   }
 
   res.json({
+    ventas,            // 🔥 ESTO ES LO QUE TE FALTABA
     totalGeneral,
+    efectivo,
+    credito,
+    porDia,
+    porMes,
 
     masVendidos,
     menosVendidos,
-
     masGanancia,
     menosGanancia,
 
@@ -709,7 +707,6 @@ app.get('/analisis', async (req, res) => {
       recomendaciones
     }
   });
-
 });
 // ================== SERVER ==================
 const PORT = process.env.PORT || 3000;
