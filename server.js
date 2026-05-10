@@ -402,8 +402,22 @@ app.delete('/productos/:id', async (req, res) => {
 
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
+  try{
+    const Venta = mongoose.model('Venta', {
+  cliente: String,
+  cedula: String,
+  correo: String,
+  celular: String,
+  productos: Array,
+  total: Number,
+  tipo: String,
+  meses: Number,
+  pago: Number,
+  vuelto: Number,
+  fecha: { type: Date, default: Date.now }
+});
 
-  // 🔥 GUARDAR VENTA
+  
   await new Venta(req.body).save();
 
   // ================= EFECTIVO =================
@@ -649,6 +663,8 @@ app.get('/analisis', async (req, res) => {
     ventas
   });
 });
+
+
 
 app.delete('/ventas/fecha', async (req, res) => {
 
