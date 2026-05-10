@@ -404,6 +404,8 @@ app.delete('/productos/:id', async (req, res) => {
 });
 
 // ================== VENTAS ==================
+const Venta = require('./models/Venta'); // 👈 IMPORTANTE: modelo fuera del endpoint
+
 app.post('/ventas', async (req, res) => {
   try {
 
@@ -425,11 +427,16 @@ app.post('/ventas', async (req, res) => {
 
     await venta.save();
 
-    res.json({ ok: true });
+    return res.json({ ok: true, msg: "Venta guardada correctamente" });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error ventas" });
+    console.log("ERROR VENTA:", err);
+
+    return res.status(500).json({
+      ok: false,
+      error: "Error ventas",
+      detalle: err.message
+    });
   }
 });
   // ================= EFECTIVO =================
