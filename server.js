@@ -105,14 +105,6 @@ app.delete('/deudas/:id', async (req, res) => {
 });
 
 
-// ================== CAJA ==================
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    ok: true,
-    message: "Servidor activo",
-    time: new Date()
-  });
-});
 
 // ================== EDITAR DEUDA ==================
 app.put('/deudas/:id', async (req, res) => {
@@ -1348,6 +1340,16 @@ app.delete('/ventas/fecha', async (req, res) => {
 
   res.json({ ok: true });
 });
+
+// ================== CAJA ==================
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    message: "Servidor activo",
+    time: new Date()
+  });
+});
+
 
 
 // ================== SERVER ==================
