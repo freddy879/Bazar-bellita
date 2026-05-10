@@ -811,12 +811,10 @@ app.delete('/productos/:id', async (req, res) => {
 
 //================================================
 // ================== VENTAS ==================
-
 app.post('/ventas', async (req, res) => {
   try {
 
-    console.log("VENTA RECIBIDA:", req.body);
-
+    // 🔥 1. GUARDAR VENTA
     const venta = new Venta({
       cliente: req.body.cliente || "",
       cedula: req.body.cedula || "",
@@ -831,7 +829,7 @@ app.post('/ventas', async (req, res) => {
       fecha: new Date()
     });
 
-    const guardada = await venta.save();
+    await venta.save();
 
     // ================= EFECTIVO =================
     if (req.body.tipo === "efectivo") {
@@ -856,29 +854,34 @@ app.post('/ventas', async (req, res) => {
     // ================= CREDITO =================
     if (req.body.tipo === "credito") {
 
-      await new Deuda({
-        cliente: req.body.cliente,
+      const deuda = new Deuda({
+        cliente: req.body.cliente || "",
         cedula: req.body.cedula || "SIN CÉDULA",
         celular: req.body.celular || "",
         direccion: req.body.direccion || "",
+
         total: Number(req.body.total || 0),
         pagado: 0,
+
         productos: req.body.productos || [],
-        pagos: []
-      }).save();
+        pagos: [],
+        fecha: new Date()
+      });
+
+      await deuda.save();
     }
 
-    return res.json({
+    res.json({
       ok: true,
-      msg: "Venta guardada correctamente",
-      data: guardada
+      msg: "Venta registrada correctamente",
+      data: venta
     });
 
   } catch (err) {
 
     console.log("🔥 ERROR VENTA:", err);
 
-    return res.status(500).json({
+    res.status(500).json({
       ok: false,
       error: err.message
     });
