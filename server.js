@@ -625,35 +625,75 @@ app.get('/analisis', async (req, res) => {
 
   let porDia = {};
   let porMes = {};
+  let productosCount = {};
 
   ventas.forEach(v => {
 
     let total = Number(v.total || 0);
     totalGeneral += total;
 
-    if (v.tipo === "efectivo") efectivo += 1;
-    if (v.tipo === "credito") credito += 1;
+    if (v.tipo === "efectivo") efectivo++;
+    if (v.tipo === "credito") credito++;
 
-    // 📅 DIA
+    // 📅 día
     let dia = new Date(v.fecha).toISOString().split("T")[0];
     porDia[dia] = (porDia[dia] || 0) + total;
 
-    // 📆 MES
-    let mes = new Date(v.fecha).toISOString().slice(0,7);
+    // 📆 mes
+    let mes = new Date(v.fecha).toISOString().slice(0, 7);
     porMes[mes] = (porMes[mes] || 0) + total;
+
+    // 📦 productos más vendidos
+    if (v.productos && Array.isArray(v.productos)) {
+      v.productos.forEach(p => {
+        let nombre = p.nombre;
+        let cantidad = Number(p.cantidad || 1);
+        productosCount[nombre] = (productosCount[nombre] || 0) + cantidad;
+      });
+    }
   });
 
-  // 🤖 IA SIMPLE
+  // 🔥 TOP PRODUCTOS
+  let topProductos = Object.entries(productosCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(p => ({
+      producto: p[0],
+      unidades: p[1]
+    }));
+
+  // 📊 métricas
   let promedio = totalGeneral / (ventas.length || 1);
 
-  let mensajeIA = "";
+  let hoy = new Date().toISOString().split("T")[0];
+  let ayerDate = new Date();
+  ayerDate.setDate(ayerDate.getDate() - 1);
+  let ayer = ayerDate.toISOString().split("T")[0];
 
-  if (promedio > 200) {
-    mensajeIA = "🔥 Buen nivel de ventas. Puedes invertir en más stock.";
-  } else if (promedio > 100) {
-    mensajeIA = "⚠️ Ventas medias. Mejora marketing o precios.";
-  } else {
-    mensajeIA = "🚨 Ventas bajas. Necesitas promociones urgentes.";
+  let ventasHoy = porDia[hoy] || 0;
+  let ventasAyer = porDia[ayer] || 0;
+
+  // 🤖 IA SIMPLE PERO POTENTE
+  let recomendaciones = [];
+
+  if (ventasHoy < ventasAyer * 0.7) {
+    recomendaciones.push("🚨 Caída fuerte de ventas hoy, revisa promociones o tráfico.");
+  }
+
+  if (promedio < 100) {
+    recomendaciones.push("⚠️ Ventas bajas, necesitas mejorar marketing o precios.");
+  }
+
+  if (topProductos.length > 0) {
+    recomendaciones.push(`🔥 Producto estrella: ${topProductos[0].producto}`);
+  }
+
+  if (topProductos.length > 3) {
+    recomendaciones.push("📦 Tienes varios productos fuertes, enfócate en stock de los TOP 3.");
+  }
+
+  if (recomendaciones.length === 0) {
+    recomendaciones.push("📊 Todo estable, sigue así.");
   }
 
   res.json({
@@ -663,11 +703,15 @@ app.get('/analisis', async (req, res) => {
     credito,
     porDia,
     porMes,
+    topProductos,
     ia: {
-      promedio,
-      mensaje: mensajeIA
+      promedioVentas: promedio,
+      ventasHoy,
+      ventasAyer,
+      recomendaciones
     }
   });
+
 });
 
 
