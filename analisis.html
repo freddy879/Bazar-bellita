@@ -1,7 +1,10 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
 <head>
-  <title>Análisis de Ventas</title>
+  <title>Dashboard Inteligente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
@@ -124,64 +127,53 @@
 
 <div class="main">
 
-  <div class="header">📊 Dashboard de Empresa</div>
+  <div class="header">📊 Dashboard IA Empresarial</div>
 
   <div class="container">
 
-    <!-- DASHBOARD PRO -->
+    <!-- DASHBOARD -->
     <div class="grid">
-
-      <div class="card">
-        <h4>💰 Total General</h4>
-        <div class="big" id="total">$0</div>
-      </div>
-
-      <div class="card">
-        <h4>📅 Ventas Hoy</h4>
-        <div class="big" id="ventasHoy">0</div>
-      </div>
-
-      <div class="card">
-        <h4>💵 Ingreso Hoy</h4>
-        <div class="big" id="ingresoHoy">$0</div>
-      </div>
-
-      <div class="card">
-        <h4>👤 Clientes</h4>
-        <div class="big" id="clientes">0</div>
-      </div>
-
+      <div class="card"><h4>💰 Total</h4><div class="big" id="total">$0</div></div>
+      <div class="card"><h4>📄 Efectivo</h4><div class="big" id="efectivo">0</div></div>
+      <div class="card"><h4>📄 Crédito</h4><div class="big" id="credito">0</div></div>
+      <div class="card"><h4>👤 Clientes</h4><div class="big" id="clientes">0</div></div>
     </div>
 
-    <div class="grid">
-
-      <div class="card">
-        <h4>💵 Efectivo</h4>
-        <div class="big" id="efectivo">0</div>
-      </div>
-
-      <div class="card">
-        <h4>📄 Crédito</h4>
-        <div class="big" id="credito">0</div>
-      </div>
-
-    </div>
-
-    <!-- FILTRO -->
+    <!-- IA -->
     <div class="card">
-      <h2>🔎 Buscar por fecha</h2>
+      <h2>🤖 IA Administrador</h2>
+      <p id="ia"></p>
+    </div>
 
-      <input type="date" id="fechaFiltro">
+    <!-- PRODUCTOS -->
+    <div class="grid">
+      <div class="card"><h4>🔥 Más vendido</h4><div id="top"></div></div>
+      <div class="card"><h4>📉 Menos vendido</h4><div id="low"></div></div>
+      <div class="card"><h4>💰 Más ganancia</h4><div id="gTop"></div></div>
+      <div class="card"><h4>💸 Menos ganancia</h4><div id="gLow"></div></div>
+    </div>
 
-      <button onclick="filtrarFecha()">🔍 Buscar día</button>
-      <button onclick="cargar()">♻ Ver todo</button>
-      <button onclick="borrarDia()">🗑 Borrar este día</button>
+    <!-- GRÁFICOS -->
+    <div class="card">
+      <h2>📊 Ventas por día</h2>
+      <canvas id="dia"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>📆 Ventas por mes</h2>
+      <canvas id="mes"></canvas>
+    </div>
+
+    <!-- BUSCAR -->
+    <div class="card">
+      <h2>🔍 Buscar historial</h2>
+      <input id="buscar" placeholder="Nombre / cédula / celular" oninput="buscar()">
+      <button onclick="cargar()">Ver todo</button>
     </div>
 
     <!-- HISTORIAL -->
     <div class="card">
-      <h2>📊 Historial de ventas</h2>
-      <button onclick="borrarHistorial()">🗑 Borrar historial completo</button>
+      <h2>📜 Historial</h2>
       <ul id="historial"></ul>
     </div>
 
@@ -192,117 +184,234 @@
 
 const API = "https://bazar-bellita.onrender.com";
 
+let ventas = [];
+let chart1, chart2;
+
+// 👇 AQUÍ VA ESTO
+let vistaDia = null;
+
+function verDia(fecha) {
+  vistaDia = fecha;
+
+  let filtrado = ventas.filter(v =>
+    new Date(v.fecha).toLocaleDateString("es-EC") === fecha
+  );
+
+  mostrar(filtrado);
+}
+
+function salirDia() {
+  vistaDia = null;
+  mostrar(ventas);
+}
+
 // ================= CARGAR =================
 async function cargar() {
 
-  const res = await fetch(API + '/analisis');
+  const res = await fetch(API + "/analisis");
   const data = await res.json();
 
-  let ventas = data.ventas || [];
+  ventas = data.ventas || [];
 
-  document.getElementById('total').innerText =
-    "$" + (data.totalGeneral || 0).toFixed(2);
+  // DASHBOARD
+  document.getElementById("total").innerText = "$" + (data.totalGeneral || 0).toFixed(2);
+  document.getElementById("efectivo").innerText = data.efectivo || 0;
+  document.getElementById("credito").innerText = data.credito || 0;
+  document.getElementById("clientes").innerText = data.clientes || 0;
 
-  let hoy = new Date().toISOString().split("T")[0];
+  // IA (IMPORTANTE: solo una vez)
+  document.getElementById("ia").innerText =
+    (data.ia?.recomendaciones || []).join(" | ");
 
-  let ventasHoy = ventas.filter(v =>
-    new Date(v.fecha).toISOString().split("T")[0] === hoy
-  );
+  // PRODUCTOS
+  document.getElementById("top").innerText =
+    data.masVendidos?.[0]?.nombre || "-";
 
-  let totalHoy = ventasHoy.reduce((s, v) => s + (v.total || 0), 0);
+  document.getElementById("low").innerText =
+    data.menosVendidos?.[0]?.nombre || "-";
 
-  document.getElementById("ventasHoy").innerText = ventasHoy.length;
-  document.getElementById("ingresoHoy").innerText = "$" + totalHoy.toFixed(2);
+  document.getElementById("gTop").innerText =
+    data.masGanancia?.[0]?.nombre || "-";
 
-  let resC = await fetch(API + "/clientes");
-  let dataC = await resC.json();
+  document.getElementById("gLow").innerText =
+    data.menosGanancia?.[0]?.nombre || "-";
 
-  document.getElementById("clientes").innerText = dataC.length || 0;
+  // GRÁFICOS
+  renderCharts(data);
 
-  let credito = ventas.filter(v => v.tipo === "credito").length;
-  let efectivo = ventas.filter(v => v.tipo === "efectivo").length;
-
-  document.getElementById("credito").innerText = credito;
-  document.getElementById("efectivo").innerText = efectivo;
-
-  mostrarVentas(ventas);
+  // HISTORIAL
+  mostrar(ventas);
 }
 
-// ================= HISTORIAL =================
-function mostrarVentas(ventas) {
+// ================= GRAFICOS =================
+function renderCharts(data) {
 
-  let ul = document.getElementById('historial');
+  if (chart1) chart1.destroy();
+  if (chart2) chart2.destroy();
+
+  chart1 = new Chart(document.getElementById("dia"), {
+    type: "bar",
+    data: {
+      labels: Object.keys(data.porDia || {}),
+      datasets: [{
+        label: "Ventas por día",
+        data: Object.values(data.porDia || {})
+      }]
+    }
+  });
+
+  chart2 = new Chart(document.getElementById("mes"), {
+    type: "line",
+    data: {
+      labels: Object.keys(data.porMes || {}),
+      datasets: [{
+        label: "Ventas por mes",
+        data: Object.values(data.porMes || {})
+      }]
+    }
+  });
+}
+
+// ================= HISTORIAL PRO =================
+function mostrar(lista) {
+
+  let ul = document.getElementById("historial");
   ul.innerHTML = "";
+
+  if (!lista || lista.length === 0) {
+    ul.innerHTML = "<li>No hay ventas</li>";
+    return;
+  }
 
   let agrupado = {};
 
-  ventas.forEach(v => {
+  lista.forEach(v => {
 
-    let fecha = new Date(v.fecha).toLocaleDateString();
-    let hora = new Date(v.fecha).toLocaleTimeString();
+    let fecha = new Date(v.fecha).toLocaleDateString("es-EC");
 
     if (!agrupado[fecha]) agrupado[fecha] = [];
-    agrupado[fecha].push({ ...v, hora });
+    agrupado[fecha].push(v);
   });
 
-  for (let fecha in agrupado) {
+  Object.keys(agrupado).forEach(fecha => {
 
-    ul.innerHTML += `<h3>📅 ${fecha}</h3>`;
+    ul.innerHTML += `
+      <div style="margin-bottom:20px;">
+        
+        <!-- HEADER DEL DÍA -->
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          background:#eee;
+          padding:10px;
+          border-radius:8px;
+        ">
+          <b>📅 ${fecha}</b>
+
+          <button onclick="borrarDia('${fecha}')"
+            style="
+              background:#e74c3c;
+              color:white;
+              border:none;
+              padding:6px 10px;
+              border-radius:6px;
+              cursor:pointer;
+            ">
+            🗑 Borrar día
+          </button>
+        </div>
+
+        <!-- BOTÓN VER SOLO DÍA -->
+        <button onclick="verDia('${fecha}')"
+          style="
+            margin:8px 0;
+            background:#3498db;
+            color:white;
+            border:none;
+            padding:6px 10px;
+            border-radius:6px;
+            cursor:pointer;
+          ">
+          👁 Ver solo este día
+        </button>
+    `;
 
     agrupado[fecha].forEach(v => {
 
-      let productosHTML = "";
+      let productos = "";
 
-      if (v.productos) {
-        productosHTML = "<ul>";
+      if (Array.isArray(v.productos)) {
+        productos = "<ul>";
         v.productos.forEach(p => {
-          productosHTML += `<li>📦 ${p.nombre} x${p.cantidad}</li>`;
+          productos += `<li>📦 ${p.nombre} x${p.cantidad}</li>`;
         });
-        productosHTML += "</ul>";
+        productos += "</ul>";
       }
 
       ul.innerHTML += `
-        <li>
-          👤 <b>${v.cliente}</b><br>
-          📧 ${v.correo || "Sin correo"}<br>
-          📱 ${v.celular || "Sin celular"}<br>
-          🆔 ${v.cedula || "Sin cédula"}<br>
-          💰 $${v.total}<br>
-          <span class="tag ${v.tipo}">${v.tipo}</span><br>
-          🕒 ${v.hora}<br>
-          ${productosHTML}
-        </li>
-        <hr>
+        <div style="
+          background:white;
+          padding:10px;
+          margin-bottom:10px;
+          border-radius:10px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1)
+        ">
+          👤 <b>${v.cliente || "-"}</b><br>
+          📱 ${v.celular || "-"}<br>
+          🆔 ${v.cedula || "-"}<br>
+          📧 ${v.correo || "-"}<br>
+          💰 $${v.total || 0}<br>
+          🕒 ${new Date(v.fecha).toLocaleTimeString()}<br>
+          ${productos}
+        </div>
       `;
     });
-  }
+
+    ul.innerHTML += `</div>`;
+  });
 }
 
-// ================= FILTRO =================
-async function filtrarFecha() {
 
-  let fecha = document.getElementById("fechaFiltro").value;
+function verDia(fecha) {
 
-  const res = await fetch(API + '/analisis');
-  const data = await res.json();
-
-  let filtradas = data.ventas.filter(v =>
-    new Date(v.fecha).toISOString().split("T")[0] === fecha
+  let filtrado = ventas.filter(v =>
+    new Date(v.fecha).toLocaleDateString("es-EC") === fecha
   );
 
-  mostrarVentas(filtradas);
+  mostrar(filtrado);
 }
 
-// ================= BORRAR =================
-async function borrarHistorial() {
 
-  let pass = prompt("Clave:");
+async function borrarDia(fecha) {
 
-  if (pass !== "bellita123") return alert("Incorrecto");
+  if (!confirm("¿Seguro borrar todo el día " + fecha + "?")) return;
 
-  await fetch(API + "/ventas", { method: "DELETE" });
+  // convertir formato ES-EC a ISO seguro
+  let partes = fecha.split("/");
+  let fechaISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
+
+  await fetch(API + "/ventas/dia", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fecha: fechaISO })
+  });
 
   cargar();
+}
+
+// ================= BUSCAR =================
+function buscar() {
+
+  let val = document.getElementById("buscar").value.toLowerCase();
+
+  let filtrado = ventas.filter(v =>
+    (v.cliente || "").toLowerCase().includes(val) ||
+    (v.cedula || "").includes(val) ||
+    (v.celular || "").includes(val)
+  );
+
+  mostrar(filtrado);
 }
 
 cargar();
