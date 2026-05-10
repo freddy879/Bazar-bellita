@@ -614,6 +614,50 @@ app.post('/caja/cerrar', async (req, res) => {
   });
 });
 
+//=============================================
+
+
+function generarIA(productos, totalGeneral) {
+
+  let recomendaciones = [];
+
+  if (!productos || productos.length === 0) {
+    return {
+      recomendaciones: ["⚠️ No hay datos suficientes para análisis"]
+    };
+  }
+
+  let masVendidos = [...productos].sort((a,b)=>b.vendidos-a.vendidos);
+  let menosVendidos = [...productos].sort((a,b)=>a.vendidos-b.vendidos);
+  let masGanancia = [...productos].sort((a,b)=>b.ganancia-a.ganancia);
+  let menosGanancia = [...productos].sort((a,b)=>a.ganancia-b.ganancia);
+
+  if (totalGeneral > 1000) {
+    recomendaciones.push("📈 Negocio estable. Puedes escalar inversión.");
+  } else if (totalGeneral > 300) {
+    recomendaciones.push("⚠️ Ventas medias. Mejora marketing.");
+  } else {
+    recomendaciones.push("🚨 Ventas bajas. Urge promoción.");
+  }
+
+  if (masVendidos[0]) {
+    recomendaciones.push(`🔥 Aumenta stock de: ${masVendidos[0].nombre}`);
+  }
+
+  if (menosVendidos[0]) {
+    recomendaciones.push(`📉 Producto lento: ${menosVendidos[0].nombre}`);
+  }
+
+  if (masGanancia[0]) {
+    recomendaciones.push(`💰 Mayor ganancia: ${masGanados[0]?.nombre || masGanancia[0].nombre}`);
+  }
+
+  if (menosGanancia[0]) {
+    recomendaciones.push(`💸 Baja rentabilidad: ${menosGanancia[0].nombre}`);
+  }
+
+  return { recomendaciones };
+}
 //===========================================
 app.get('/analisis', async (req, res) => {
 
