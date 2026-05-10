@@ -620,101 +620,97 @@ app.get('/analisis', async (req, res) => {
   const ventas = await Venta.find();
 
   let totalGeneral = 0;
-  let efectivo = 0;
-  let credito = 0;
-
-  let porDia = {};
-  let porMes = {};
-  let productosCount = {};
+  let productos = {};
 
   ventas.forEach(v => {
 
     let total = Number(v.total || 0);
     totalGeneral += total;
 
-    if (v.tipo === "efectivo") efectivo++;
-    if (v.tipo === "credito") credito++;
-
-    // 📅 día
-    let dia = new Date(v.fecha).toISOString().split("T")[0];
-    porDia[dia] = (porDia[dia] || 0) + total;
-
-    // 📆 mes
-    let mes = new Date(v.fecha).toISOString().slice(0, 7);
-    porMes[mes] = (porMes[mes] || 0) + total;
-
-    // 📦 productos más vendidos
     if (v.productos && Array.isArray(v.productos)) {
+
       v.productos.forEach(p => {
+
         let nombre = p.nombre;
         let cantidad = Number(p.cantidad || 1);
-        productosCount[nombre] = (productosCount[nombre] || 0) + cantidad;
+        let precio = Number(p.precio || 0);
+        let costo = Number(p.costo || 0);
+
+        let ganancia = (precio - costo) * cantidad;
+
+        if (!productos[nombre]) {
+          productos[nombre] = {
+            nombre,
+            vendidos: 0,
+            ganancia: 0
+          };
+        }
+
+        productos[nombre].vendidos += cantidad;
+        productos[nombre].ganancia += ganancia;
       });
     }
   });
 
-  // 🔥 TOP PRODUCTOS
-  let topProductos = Object.entries(productosCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(p => ({
-      producto: p[0],
-      unidades: p[1]
-    }));
+  // 📊 convertir a array
+  let lista = Object.values(productos);
 
-  // 📊 métricas
-  let promedio = totalGeneral / (ventas.length || 1);
+  // 🔥 más vendidos
+  let masVendidos = [...lista]
+    .sort((a, b) => b.vendidos - a.vendidos)
+    .slice(0, 5);
 
-  let hoy = new Date().toISOString().split("T")[0];
-  let ayerDate = new Date();
-  ayerDate.setDate(ayerDate.getDate() - 1);
-  let ayer = ayerDate.toISOString().split("T")[0];
+  // 📉 menos vendidos
+  let menosVendidos = [...lista]
+    .sort((a, b) => a.vendidos - b.vendidos)
+    .slice(0, 5);
 
-  let ventasHoy = porDia[hoy] || 0;
-  let ventasAyer = porDia[ayer] || 0;
+  // 💰 más ganancia
+  let masGanancia = [...lista]
+    .sort((a, b) => b.ganancia - a.ganancia)
+    .slice(0, 5);
 
-  // 🤖 IA SIMPLE PERO POTENTE
+  // 💸 menos ganancia
+  let menosGanancia = [...lista]
+    .sort((a, b) => a.ganancia - b.ganancia)
+    .slice(0, 5);
+
+  // 🧠 IA de recomendaciones
   let recomendaciones = [];
 
-  if (ventasHoy < ventasAyer * 0.7) {
-    recomendaciones.push("🚨 Caída fuerte de ventas hoy, revisa promociones o tráfico.");
+  if (masGanancia.length > 0) {
+    recomendaciones.push(`🔥 Enfócate en vender más: ${masGanancia[0].nombre}`);
   }
 
-  if (promedio < 100) {
-    recomendaciones.push("⚠️ Ventas bajas, necesitas mejorar marketing o precios.");
+  if (menosGanancia.length > 0) {
+    recomendaciones.push(`⚠️ Evita o mejora margen de: ${menosGanancia[0].nombre}`);
   }
 
-  if (topProductos.length > 0) {
-    recomendaciones.push(`🔥 Producto estrella: ${topProductos[0].producto}`);
+  if (menosVendidos.length > 0) {
+    recomendaciones.push(`📦 Revisa stock o marketing de: ${menosVendidos[0].nombre}`);
   }
 
-  if (topProductos.length > 3) {
-    recomendaciones.push("📦 Tienes varios productos fuertes, enfócate en stock de los TOP 3.");
-  }
-
-  if (recomendaciones.length === 0) {
-    recomendaciones.push("📊 Todo estable, sigue así.");
+  if (totalGeneral < 1000) {
+    recomendaciones.push("🚨 Ventas bajas, necesitas promociones urgentes");
+  } else {
+    recomendaciones.push("📊 Negocio estable, sigue optimizando productos top");
   }
 
   res.json({
     totalGeneral,
-    ventas,
-    efectivo,
-    credito,
-    porDia,
-    porMes,
-    topProductos,
+
+    masVendidos,
+    menosVendidos,
+
+    masGanancia,
+    menosGanancia,
+
     ia: {
-      promedioVentas: promedio,
-      ventasHoy,
-      ventasAyer,
       recomendaciones
     }
   });
 
 });
-
-
 // ================== SERVER ==================
 const PORT = process.env.PORT || 3000;
 
