@@ -764,18 +764,11 @@ app.delete('/ventas/dia', async (req, res) => {
       return res.status(400).json({ error: "Falta fecha" });
     }
 
-    // convertir fecha string a rango real de día
-    const inicio = new Date(fecha);
-    inicio.setHours(0, 0, 0, 0);
-
-    const fin = new Date(fecha);
-    fin.setHours(23, 59, 59, 999);
+    const inicio = new Date(fecha + "T00:00:00.000Z");
+    const fin = new Date(fecha + "T23:59:59.999Z");
 
     const resultado = await Venta.deleteMany({
-      fecha: {
-        $gte: inicio,
-        $lte: fin
-      }
+      fecha: { $gte: inicio, $lte: fin }
     });
 
     res.json({
