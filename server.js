@@ -35,6 +35,7 @@ mongoose.connect(URI, {
 .then(() => console.log("✅ Mongo conectado rápido"))
 .catch(err => console.log("❌ Error Mongo:", err));
 // ================== MODELOS ==================
+
 const Producto = mongoose.model('Producto', {
   nombre: String,
   codigo: String,
@@ -43,18 +44,20 @@ const Producto = mongoose.model('Producto', {
   stock: Number
 });
 
-await new Venta({
-  cliente: req.body.cliente,
-  cedula: req.body.cedula,
-  correo: req.body.correo || "",
-  celular: req.body.celular || "",
-  productos: req.body.productos,
-  total: req.body.total,
-  tipo: req.body.tipo,
-  meses: req.body.meses || 0
-}).save();
-
-
+// 🔥 AQUÍ VA VENTA
+const Venta = mongoose.models.Venta || mongoose.model('Venta', {
+  cliente: String,
+  cedula: String,
+  correo: String,
+  celular: String,
+  productos: Array,
+  total: Number,
+  tipo: String,
+  meses: Number,
+  pago: Number,
+  vuelto: Number,
+  fecha: { type: Date, default: Date.now }
+});
 // ================== DEUDAS ==================
 const Deuda = mongoose.model('Deuda', {
   cliente: String,
