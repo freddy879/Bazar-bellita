@@ -123,6 +123,7 @@
   <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
   <a href="cliente.html">👤 Clientes</a>
+  <a href="#" class="active">📊 Dashboard</a>
 </div>
 
 <div class="main">
@@ -139,11 +140,6 @@
       <div class="card"><h4>👤 Clientes</h4><div class="big" id="clientes">0</div></div>
     </div>
 
-    <!-- IA -->
-    <div class="card">
-      <h2>🤖 IA Administrador</h2>
-      <p id="ia"></p>
-    </div>
 
     <!-- PRODUCTOS -->
     <div class="grid">
@@ -181,16 +177,15 @@
 </div>
 
 <script>
-
 const API = "https://bazar-bellita.onrender.com";
 
 let ventas = [];
 let chart1, chart2;
 
-// 👇 AQUÍ VA ESTO
 let vistaDia = null;
 
 function verDia(fecha) {
+
   vistaDia = fecha;
 
   let filtrado = ventas.filter(v =>
@@ -201,7 +196,9 @@ function verDia(fecha) {
 }
 
 function salirDia() {
+
   vistaDia = null;
+
   mostrar(ventas);
 }
 
@@ -214,14 +211,17 @@ async function cargar() {
   ventas = data.ventas || [];
 
   // DASHBOARD
-  document.getElementById("total").innerText = "$" + (data.totalGeneral || 0).toFixed(2);
-  document.getElementById("efectivo").innerText = data.efectivo || 0;
-  document.getElementById("credito").innerText = data.credito || 0;
-  document.getElementById("clientes").innerText = data.clientes || 0;
+  document.getElementById("total").innerText =
+    "$" + (data.totalGeneral || 0).toFixed(2);
 
-  // IA (IMPORTANTE: solo una vez)
-  document.getElementById("ia").innerText =
-    (data.ia?.recomendaciones || []).join(" | ");
+  document.getElementById("efectivo").innerText =
+    data.efectivo || 0;
+
+  document.getElementById("credito").innerText =
+    data.credito || 0;
+
+  document.getElementById("clientes").innerText =
+    data.clientes || 0;
 
   // PRODUCTOS
   document.getElementById("top").innerText =
@@ -250,26 +250,35 @@ function renderCharts(data) {
   if (chart2) chart2.destroy();
 
   chart1 = new Chart(document.getElementById("dia"), {
+
     type: "bar",
+
     data: {
       labels: Object.keys(data.porDia || {}),
+
       datasets: [{
         label: "Ventas por día",
         data: Object.values(data.porDia || {})
       }]
     }
+
   });
 
   chart2 = new Chart(document.getElementById("mes"), {
+
     type: "line",
+
     data: {
       labels: Object.keys(data.porMes || {}),
+
       datasets: [{
         label: "Ventas por mes",
         data: Object.values(data.porMes || {})
       }]
     }
+
   });
+
 }
 
 // ================= HISTORIAL PRO =================
@@ -291,6 +300,7 @@ function mostrar(lista) {
 
     if (!agrupado[fecha]) agrupado[fecha] = [];
     agrupado[fecha].push(v);
+
   });
 
   Object.keys(agrupado).forEach(fecha => {
@@ -342,10 +352,19 @@ function mostrar(lista) {
       let productos = "";
 
       if (Array.isArray(v.productos)) {
+
         productos = "<ul>";
+
         v.productos.forEach(p => {
-          productos += `<li>📦 ${p.nombre} x${p.cantidad}</li>`;
+
+          productos += `
+            <li>
+              📦 ${p.nombre} x${p.cantidad}
+            </li>
+          `;
+
         });
+
         productos += "</ul>";
       }
 
@@ -366,12 +385,14 @@ function mostrar(lista) {
           ${productos}
         </div>
       `;
+
     });
 
     ul.innerHTML += `</div>`;
-  });
-}
 
+  });
+
+}
 
 function verDia(fecha) {
 
@@ -382,40 +403,83 @@ function verDia(fecha) {
   mostrar(filtrado);
 }
 
-
 async function borrarDia(fecha) {
 
-  if (!confirm("¿Seguro borrar todo el día " + fecha + "?")) return;
+  if (!confirm("¿Seguro borrar todo el día " + fecha + "?")) {
+    return;
+  }
 
-  // convertir formato ES-EC a ISO seguro
-  let partes = fecha.split("/");
-  let fechaISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
+  try {
 
-  await fetch(API + "/ventas/dia", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fecha: fechaISO })
-  });
+    // fecha viene tipo: 10/5/2026
+    let partes = fecha.split("/");
 
-  cargar();
+    let dia = partes[0].padStart(2,"0");
+    let mes = partes[1].padStart(2,"0");
+    let anio = partes[2];
+
+    let fechaISO = `${anio}-${mes}-${dia}`;
+
+    const res = await fetch(API + "/ventas/dia", {
+
+      method:"DELETE",
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
+      body: JSON.stringify({
+        fecha: fechaISO
+      })
+
+    });
+
+    const data = await res.json();
+
+    alert(data.msg || "Día eliminado");
+
+    cargar();
+
+  } catch(err){
+
+    console.log(err);
+
+    alert("Error al borrar");
+
+  }
+
 }
 
 // ================= BUSCAR =================
 function buscar() {
 
-  let val = document.getElementById("buscar").value.toLowerCase();
+  let val =
+    document.getElementById("buscar")
+    .value
+    .toLowerCase();
 
   let filtrado = ventas.filter(v =>
-    (v.cliente || "").toLowerCase().includes(val) ||
-    (v.cedula || "").includes(val) ||
-    (v.celular || "").includes(val)
+
+    (v.cliente || "")
+    .toLowerCase()
+    .includes(val)
+
+    ||
+
+    (v.cedula || "")
+    .includes(val)
+
+    ||
+
+    (v.celular || "")
+    .includes(val)
+
   );
 
   mostrar(filtrado);
 }
 
 cargar();
-
 </script>
 
 </body>
