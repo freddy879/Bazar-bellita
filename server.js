@@ -810,13 +810,10 @@ app.delete('/productos/:id', async (req, res) => {
 });
 
 
-// ================== VENTAS ==================
-const Venta = require('./models/Venta');
-
 app.post('/ventas', async (req, res) => {
   try {
 
-    console.log("VENTA RECIBIDA:", req.body); // 🔥 DEBUG
+    console.log("VENTA RECIBIDA:", req.body);
 
     const venta = new Venta({
       cliente: req.body.cliente || "",
@@ -834,6 +831,41 @@ app.post('/ventas', async (req, res) => {
 
     const guardada = await venta.save();
 
+    // ================= EFECTIVO =================
+    if (req.body.tipo === "efectivo") {
+
+      let caja = await Caja.findOne({ activa: true });
+
+      if (caja) {
+        caja.ingresos += Number(req.body.total || 0);
+
+        if (!caja.movimientos) caja.movimientos = [];
+
+        caja.movimientos.push({
+          tipo: "ingreso",
+          monto: Number(req.body.total || 0),
+          motivo: "Venta"
+        });
+
+        await caja.save();
+      }
+    }
+
+    // ================= CREDITO =================
+    if (req.body.tipo === "credito") {
+
+      await new Deuda({
+        cliente: req.body.cliente,
+        cedula: req.body.cedula || "SIN CÉDULA",
+        celular: req.body.celular || "",
+        direccion: req.body.direccion || "",
+        total: Number(req.body.total || 0),
+        pagado: 0,
+        productos: req.body.productos || [],
+        pagos: []
+      }).save();
+    }
+
     return res.json({
       ok: true,
       msg: "Venta guardada correctamente",
@@ -842,52 +874,14 @@ app.post('/ventas', async (req, res) => {
 
   } catch (err) {
 
-    console.log("🔥 ERROR VENTA COMPLETO:", err);
+    console.log("🔥 ERROR VENTA:", err);
 
     return res.status(500).json({
       ok: false,
-      error: "Error ventas",
-      detalle: err.message
+      error: err.message
     });
   }
 });
-  // ================= EFECTIVO =================
-  if (req.body.tipo === "efectivo") {
-
-    let caja = await Caja.findOne({ activa: true });
-
-    if (caja) {
-      caja.ingresos += Number(req.body.total || 0);
-
-      if (!caja.movimientos) caja.movimientos = [];
-      caja.movimientos.push({
-        tipo: "ingreso",
-        monto: req.body.total,
-        motivo: "Venta"
-      });
-
-      await caja.save();
-    }
-  }
-
-  // ================= CREDITO =================
-   if (req.body.tipo === "credito") {
-
-    await new Deuda({
-     cliente: req.body.cliente,
-     cedula: req.body.cedula || "SIN CÉDULA",
-     celular: req.body.celular || "",
-     direccion: req.body.direccion || "",
-     total: req.body.total,
-     pagado: 0,
-     productos: req.body.productos || [],
-     pagos: []
-    }).save();
-  }
-
-  res.json({ ok: true });
-});
-
 //-------Deuda-----------
 app.post('/deudas', async (req, res) => {
   try {
