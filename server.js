@@ -180,7 +180,6 @@ app.get('/clientes', async (req, res) => {
   catch (err) { res.status(500).json([]); }
 });
 
-// ⚠️ Esta ruta debe ir ANTES de /clientes/:id para no colisionar
 app.post('/clientes/sumar-deuda', async (req, res) => {
   try {
     const { cedula, total } = req.body;
@@ -240,7 +239,6 @@ app.post('/ventas', async (req, res) => {
 
     const caja = await Caja.findOne({ activa: true });
 
-    // Efectivo → suma ingresos en caja
     if (req.body.tipo === "efectivo" && caja) {
       caja.ingresos += Number(req.body.total || 0);
       caja.movimientos.push({
@@ -249,7 +247,6 @@ app.post('/ventas', async (req, res) => {
       await caja.save();
     }
 
-    // Crédito → crear deuda
     if (req.body.tipo === "credito") {
       await new Deuda({
         cliente:  req.body.cliente,
@@ -264,7 +261,6 @@ app.post('/ventas', async (req, res) => {
       }).save();
     }
 
-    // Transferencia → registrar en caja automáticamente
     if (req.body.tipo === "transferencia" && caja) {
       caja.ingresos += Number(req.body.total || 0);
       caja.movimientos.push({
@@ -327,6 +323,7 @@ app.post('/deudas', async (req, res) => {
   }
 });
 
+// 🔥 CORREGIDO: /deudas/pagar ahora distingue efectivo vs transferencia en caja
 app.post('/deudas/pagar', async (req, res) => {
   try {
     const deuda = await Deuda.findById(req.body.id);
@@ -342,20 +339,45 @@ app.post('/deudas/pagar', async (req, res) => {
     deuda.pagos.push({ monto, fecha: new Date() });
     await deuda.save();
 
-    // Registrar abono en caja
+    // 🔥 Registrar en caja según el método de pago
     const caja = await Caja.findOne({ activa: true });
     if (caja) {
-      caja.ingresos += monto;
-      caja.movimientos.push({ tipo: "ingreso", monto, motivo: "Abono deuda" });
+      const metodoPago  = req.body.metodoPago  || "efectivo";
+      const banco       = req.body.banco       || "";
+      const comprobante = req.body.comprobante || "";
+
+      if (metodoPago === "transferencia") {
+        // Transferencia → aparece en el detalle de transferencias de caja
+        caja.ingresos += monto;
+        caja.movimientos.push({
+          tipo:        "transferencia",
+          monto,
+          motivo:      `Abono deuda — ${deuda.cliente}`,
+          banco,
+          comprobante,
+          remitente:   deuda.cliente || ""
+        });
+      } else {
+        // Efectivo → ingreso normal
+        caja.ingresos += monto;
+        caja.movimientos.push({
+          tipo:   "ingreso",
+          monto,
+          motivo: `Abono deuda efectivo — ${deuda.cliente}`
+        });
+      }
+
       await caja.save();
     }
 
     res.json({
       cliente:  deuda.cliente,
+      cedula:   deuda.cedula  || "-",
       celular:  deuda.celular || "",
       monto,
       total:    deuda.total,
       restante: deuda.total - deuda.pagado,
+      pagado:   deuda.pagado,
       pagos:    deuda.pagos    || [],
       productos:deuda.productos || []
     });
@@ -394,7 +416,6 @@ app.post('/caja/abrir', async (req, res) => {
     const monto = Number(req.body.monto);
     if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
 
-    // Cerrar caja anterior si quedó abierta
     const abierta = await Caja.findOne({ activa: true });
     if (abierta) {
       abierta.activa     = false;
@@ -438,15 +459,15 @@ app.get('/caja', async (req, res) => {
     });
 
     res.json({
-      apertura:         caja.apertura,
-      ingresos:         caja.ingresos,
+      apertura:          caja.apertura,
+      ingresos:          caja.ingresos,
       transferencias,
-      gastos:           caja.gastos,
-      saldo:            caja.apertura + caja.ingresos - caja.gastos,
-      horaApertura:     caja.horaApertura,
+      gastos:            caja.gastos,
+      saldo:             caja.apertura + caja.ingresos - caja.gastos,
+      horaApertura:      caja.horaApertura,
       gastosLista,
       transferenciasList,
-      movimientos:      caja.movimientos || []
+      movimientos:       caja.movimientos || []
     });
   } catch (err) {
     console.error(err);
@@ -470,9 +491,6 @@ app.post('/caja/gasto', async (req, res) => {
   } catch (err) { res.status(500).json({ error: "Error al registrar gasto" }); }
 });
 
-// 🔥 Transferencia desde caja.html (manual) O desde index.html (venta)
-// En ventas ya se registra automáticamente en /ventas, pero este endpoint
-// queda disponible para transferencias manuales directas desde caja.html
 app.post('/caja/transferencia', async (req, res) => {
   try {
     const caja = await Caja.findOne({ activa: true });
@@ -509,7 +527,7 @@ app.post('/caja/cerrar', async (req, res) => {
     const diferencia = real - esperado;
 
     let transferencias = 0;
-    const gastosLista       = [];
+    const gastosLista        = [];
     const transferenciasList = [];
 
     (caja.movimientos || []).forEach(m => {
@@ -527,7 +545,6 @@ app.post('/caja/cerrar', async (req, res) => {
     });
     await caja.save();
 
-    // Abrir nueva caja con el monto dejado
     if (dejar > 0) {
       await new Caja({
         apertura:     dejar,
@@ -559,14 +576,13 @@ app.post('/caja/cerrar', async (req, res) => {
   }
 });
 
-// 🔥 NUEVO: Historial de cierres para caja.html
 app.get('/caja/historial', async (req, res) => {
   try {
     const cajas = await Caja.find({ activa: false }).sort({ horaCierre: -1 }).limit(50);
 
     const historial = cajas.map(c => {
       let transferencias = 0;
-      const gastosLista       = [];
+      const gastosLista        = [];
       const transferenciasList = [];
 
       (c.movimientos || []).forEach(m => {
@@ -649,7 +665,6 @@ app.get('/analisis', async (req, res) => {
     const masGanancia   = [...lista].sort((a,b) => b.ganancia  - a.ganancia ).slice(0, 5);
     const menosGanancia = [...lista].sort((a,b) => a.ganancia  - b.ganancia ).slice(0, 5);
 
-    // Clientes únicos
     const clientesUnicos = new Set(ventas.map(v => v.cedula || v.cliente)).size;
 
     res.json({
@@ -657,7 +672,7 @@ app.get('/analisis', async (req, res) => {
       totalGeneral,
       efectivo,
       credito,
-      transferencia,    // 🔥 corregido (antes faltaba)
+      transferencia,
       clientes: clientesUnicos,
       porDia,
       porMes,
