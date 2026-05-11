@@ -536,16 +536,25 @@ app.post('/caja/abrir', async (req, res) => {
 });
 
 app.get('/caja', async (req, res) => {
+
   let caja = await Caja.findOne({ activa: true });
   if (!caja) return res.json(null);
+
+  let transferencias = 0;
+
+  (caja.movimientos || []).forEach(m => {
+    if (m.tipo === "transferencia") {
+      transferencias += m.monto;
+    }
+  });
 
   res.json({
     apertura: caja.apertura,
     ingresos: caja.ingresos,
+    transferencias,
     gastos: caja.gastos,
     saldo: caja.apertura + caja.ingresos - caja.gastos,
-    movimientos: caja.movimientos || [],
-    dejado: caja.dejado || 0
+    movimientos: caja.movimientos || []
   });
 });
 
@@ -565,6 +574,33 @@ app.post('/caja/gasto', async (req, res) => {
     tipo: "gasto",
     monto,
     motivo
+  });
+
+  await caja.save();
+
+  res.json({ ok: true });
+});
+
+app.post('/caja/transferencia', async (req, res) => {
+
+  let caja = await Caja.findOne({ activa: true });
+
+  if (!caja) return res.json({ error: "Caja no abierta" });
+
+  let monto = Number(req.body.monto || 0);
+
+  caja.ingresos += monto;
+
+  if (!caja.movimientos) caja.movimientos = [];
+
+  caja.movimientos.push({
+    tipo: "transferencia",
+    monto,
+    motivo: `Transferencia ${req.body.banco || ""}`,
+    banco: req.body.banco,
+    cuenta: req.body.cuenta,
+    comprobante: req.body.comprobante,
+    remitente: req.body.remitente
   });
 
   await caja.save();
