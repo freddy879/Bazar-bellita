@@ -538,23 +538,31 @@ app.post('/caja/abrir', async (req, res) => {
 app.get('/caja', async (req, res) => {
 
   let caja = await Caja.findOne({ activa: true });
-  if (!caja) return res.json(null);
+
+  if (!caja) {
+    return res.json({
+      apertura: 0,
+      ingresos: 0,
+      transferencias: 0,
+      gastos: 0,
+      saldo: 0
+    });
+  }
 
   let transferencias = 0;
 
   (caja.movimientos || []).forEach(m => {
     if (m.tipo === "transferencia") {
-      transferencias += m.monto;
+      transferencias += Number(m.monto || 0);
     }
   });
 
   res.json({
-    apertura: caja.apertura,
-    ingresos: caja.ingresos,
+    apertura: caja.apertura || 0,
+    ingresos: caja.ingresos || 0,
     transferencias,
-    gastos: caja.gastos,
-    saldo: caja.apertura + caja.ingresos - caja.gastos,
-    movimientos: caja.movimientos || []
+    gastos: caja.gastos || 0,
+    saldo: (caja.apertura || 0) + (caja.ingresos || 0) - (caja.gastos || 0)
   });
 });
 
