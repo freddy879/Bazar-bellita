@@ -2,123 +2,50 @@
 <html>
 <head>
   <title>Caja - Bazar Bellita</title>
-
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI';
-      display: flex;
-      background: #f5f6fa;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; display: flex; }
 
-    .sidebar {
-      width: 220px;
-      background: #1e272e;
-      color: white;
-      height: 100vh;
-      padding: 20px;
-      box-sizing: border-box;
-    }
+    .sidebar { width: 220px; background: #1e272e; color: white; height: 100vh; padding: 20px; flex-shrink: 0; }
+    .sidebar h2 { margin-bottom: 16px; }
+    .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; margin-top: 6px; border-radius: 8px; }
+    .sidebar a:hover { background: #485460; }
 
-    .sidebar a {
-      display: block;
-      color: white;
-      padding: 10px;
-      text-decoration: none;
-      margin-top: 10px;
-      border-radius: 8px;
-    }
+    .main { flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .header { background: #ff3f34; color: white; padding: 15px 20px; font-size: 20px; font-weight: bold; }
 
-    .sidebar a:hover {
-      background: #485460;
-    }
+    .contenido { padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
 
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+    .card h3 { margin-bottom: 12px; font-size: 16px; }
 
-    .header {
-      background: #ff3f34;
-      color: white;
-      padding: 15px;
-      font-size: 20px;
-    }
+    input { padding: 10px; margin-top: 8px; width: 100%; border-radius: 6px; border: 1px solid #ccc; }
 
-    .contenido {
-      padding: 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
-    }
+    button { margin-top: 10px; width: 100%; padding: 10px; border: none; background: #ff3f34; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #e84118; }
 
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-    }
+    .saldo { font-size: 22px; color: green; font-weight: bold; }
 
-    input {
-      padding: 10px;
-      margin-top: 10px;
-      width: 100%;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
+    .estado-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .estado-row:last-child { border-bottom: none; }
 
-    button {
-      margin-top: 10px;
-      width: 100%;
-      padding: 10px;
-      border: none;
-      background: #ff3f34;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+    .badge { background: #fff3f3; color: #ff3f34; font-size: 11px; padding: 2px 7px; border-radius: 4px; cursor: pointer; margin-left: 6px; border: 1px solid #ffcdd2; }
+    .badge:hover { background: #ffcdd2; }
 
-    button:hover {
-      background: #e84118;
-    }
+    .trans-detalle { background: #f9f9f9; border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 13px; display: none; }
+    .trans-item { padding: 6px 0; border-bottom: 1px dashed #ddd; }
+    .trans-item:last-child { border-bottom: none; }
 
-    .saldo {
-      font-size: 22px;
-      color: green;
-      font-weight: bold;
-    }
+    .aviso { background: #fff8e1; border: 1px solid #ffc107; border-radius: 6px; padding: 10px; margin-bottom: 10px; font-size: 12px; color: #795548; }
 
-    @page {
-      size: 80mm auto;
-      margin: 0;
-    }
-
+    @page { size: 80mm auto; margin: 0; }
     @media print {
-      body {
-        width: 80mm;
-        font-family: monospace;
-        font-size: 12px;
-        margin: 0;
-        padding: 0;
-      }
-
-      .sidebar,
-      button {
-        display: none !important;
-      }
-
-      .card {
-        box-shadow: none;
-        border: none;
-        padding: 5px;
-      }
+      body { width: 80mm; font-family: monospace; font-size: 12px; }
+      .sidebar, button { display: none !important; }
+      .card { box-shadow: none; border: none; padding: 5px; }
     }
   </style>
 </head>
-
 <body>
 
 <div class="sidebar">
@@ -129,38 +56,57 @@
   <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
   <a href="cliente.html">👤 Clientes</a>
+  <a href="o.html">📊 Dashboard</a>
 </div>
 
 <div class="main">
-
   <div class="header">🏦 Control de Caja</div>
 
   <div class="contenido">
 
+    <!-- ABRIR CAJA -->
     <div class="card">
       <h3>🟢 Abrir Caja</h3>
-      <input id="monto" type="number" placeholder="Monto inicial">
+      <input id="monto" type="number" placeholder="Monto inicial en efectivo">
       <button onclick="abrir()">Abrir</button>
     </div>
 
+    <!-- ESTADO -->
     <div class="card">
-      <h3>📊 Estado</h3>
-      <p>Apertura: $<span id="apertura">0</span></p>
-      <p>Ingresos: $<span id="ingresos">0</span></p>
-      <p>Gastos: $<span id="gastos">0</span></p>
-      <p class="saldo">Saldo: $<span id="saldo">0</span></p>
-      <button onclick="cargar()">Actualizar</button>
+      <h3>📊 Estado de Caja</h3>
+      <div class="aviso">⚠️ Transferencias contadas <b>solo en caja</b>, no en ventas, para evitar duplicados.</div>
+      <div class="estado-row"><span>Apertura</span><span>$<span id="apertura">0</span></span></div>
+      <div class="estado-row"><span>Ventas (efectivo)</span><span>$<span id="ingresos">0</span></span></div>
+      <div class="estado-row">
+        <span>
+          Transferencias
+          <span class="badge" onclick="toggleDetalle()">ver detalle</span>
+        </span>
+        <span>$<span id="transferencias">0</span></span>
+      </div>
+      <div class="trans-detalle" id="detalleTransferencias">
+        <i style="color:#999">Cargando...</i>
+      </div>
+      <div class="estado-row"><span>Gastos</span><span>- $<span id="gastos">0</span></span></div>
+      <div class="estado-row">
+        <span class="saldo">Saldo Total</span>
+        <span class="saldo">$<span id="saldo">0</span></span>
+      </div>
+      <button onclick="cargar()">🔄 Actualizar</button>
     </div>
 
+    <!-- GASTO -->
     <div class="card">
-      <h3>💸 Gasto</h3>
-      <input id="gasto" type="number" placeholder="Monto">
-      <input id="motivo" type="text" placeholder="Motivo">
-      <button onclick="registrarGasto()">Registrar</button>
+      <h3>💸 Registrar Gasto</h3>
+      <input id="gasto" type="number" placeholder="Monto del gasto">
+      <input id="motivo" type="text" placeholder="Motivo del gasto">
+      <button onclick="registrarGasto()">Registrar Gasto</button>
     </div>
 
+    <!-- CERRAR -->
     <div class="card">
       <h3>🔴 Cerrar Caja</h3>
+      <p style="font-size:13px;color:#666;margin-bottom:8px;">El ticket imprimirá el detalle completo de transferencias (banco, comprobante, monto).</p>
       <button onclick="cerrar()">Cerrar Caja</button>
     </div>
 
@@ -170,23 +116,95 @@
 <script>
 
 const API = "https://bazar-bellita.onrender.com";
+let transferenciasList = [];
+
+// ================== TOGGLE DETALLE ==================
+function toggleDetalle() {
+  let d = document.getElementById('detalleTransferencias');
+  d.style.display = d.style.display === 'block' ? 'none' : 'block';
+}
+
+// ================== CONSTRUIR LISTA COMPLETA DE TRANSFERENCIAS ==================
+// Combina transferenciasList del backend + movimientos con banco
+// para capturar abonos de deuda que lleguen como tipo "ingreso" pero con banco
+function construirListaTransferencias(data) {
+  // Empezamos con la lista oficial del backend
+  let lista = [
+    ...(data?.transferenciasList || []),
+    ...(data?.transferenciasLista || [])
+  ];
+
+  // IDs ya incluidos para no duplicar
+  let idsIncluidos = new Set(lista.map(t => t._id).filter(Boolean));
+
+  // Revisamos movimientos: si tienen banco y no están ya en la lista, los agregamos
+  let movimientos = data?.movimientos || [];
+  movimientos.forEach(m => {
+    if (m.banco && !idsIncluidos.has(m._id)) {
+      lista.push(m);
+      idsIncluidos.add(m._id);
+    }
+  });
+
+  return lista;
+}
+
+// ================== RENDER DETALLE TRANSFERENCIAS ==================
+function renderDetalle(lista) {
+  let d = document.getElementById('detalleTransferencias');
+  if (!lista || lista.length === 0) {
+    d.innerHTML = '<i style="color:#999">Sin transferencias registradas</i>';
+    return;
+  }
+  d.innerHTML = lista.map(t => `
+    <div class="trans-item">
+      🏦 <b>${t.banco || 'Sin banco'}</b> &nbsp;|&nbsp;
+      🔢 Comp: <b>${t.comprobante || 'S/N'}</b> &nbsp;|&nbsp;
+      💵 $<b>${t.monto || 0}</b>
+      ${t.motivo ? `<br><span style="color:#888;font-size:11px;">📝 ${t.motivo}</span>` : ''}
+    </div>
+  `).join('');
+}
+
+// ================== CARGAR ==================
+async function cargar() {
+  try {
+    let res = await fetch(API + '/caja');
+    let data = await res.json();
+
+    document.getElementById('apertura').innerText       = data?.apertura       ?? 0;
+    document.getElementById('ingresos').innerText       = data?.ingresos       ?? 0;
+    document.getElementById('gastos').innerText         = data?.gastos         ?? 0;
+    document.getElementById('saldo').innerText          = data?.saldo          ?? 0;
+    document.getElementById('transferencias').innerText = data?.transferencias  ?? 0;
+
+    // Construir lista combinada para el detalle
+    transferenciasList = construirListaTransferencias(data);
+    renderDetalle(transferenciasList);
+
+  } catch (e) {
+    ['apertura','ingresos','gastos','saldo','transferencias'].forEach(id =>
+      document.getElementById(id).innerText = '0'
+    );
+    document.getElementById('detalleTransferencias').innerHTML =
+      '<i style="color:red">❌ Error de conexión</i>';
+  }
+}
 
 // ================== ABRIR ==================
-async function abrir(){
+async function abrir() {
   let monto = Number(document.getElementById('monto').value);
-  if(!monto || monto <= 0) return alert("Monto inválido");
+  if (!monto || monto <= 0) return alert("Monto inválido");
 
-  try{
-    let res = await fetch(API + '/caja/abrir',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+  try {
+    let res = await fetch(API + '/caja/abrir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ monto })
     });
-
     let data = await res.json();
     alert(data.error || "Caja abierta ✔");
-
-  }catch{
+  } catch {
     alert("❌ Error conexión");
   }
 
@@ -194,151 +212,145 @@ async function abrir(){
   cargar();
 }
 
-// ================== CARGAR ==================
-async function cargar(){
-  try{
-    let res = await fetch(API + '/caja');
-    let data = await res.json();
-
-    apertura.innerText = data?.apertura || 0;
-    ingresos.innerText = data?.ingresos || 0;
-    gastos.innerText = data?.gastos || 0;
-    saldo.innerText = data?.saldo || 0;
-
-  }catch{
-    apertura.innerText = 0;
-    ingresos.innerText = 0;
-    gastos.innerText = 0;
-    saldo.innerText = 0;
-  }
-}
-
 // ================== GASTO ==================
-async function registrarGasto(){
-  let monto = Number(document.getElementById('gasto').value);
+async function registrarGasto() {
+  let monto  = Number(document.getElementById('gasto').value);
   let motivo = document.getElementById('motivo').value || "Sin motivo";
 
-  if(!monto || monto <= 0) return alert("Monto inválido");
+  if (!monto || monto <= 0) return alert("Monto inválido");
 
-  try{
-    let res = await fetch(API + '/caja/gasto',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+  try {
+    let res = await fetch(API + '/caja/gasto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ monto, motivo })
     });
-
     let data = await res.json();
     alert(data.error || "Gasto registrado ✔");
-
-  }catch{
+  } catch {
     alert("❌ Error conexión");
   }
 
-  document.getElementById('gasto').value = "";
+  document.getElementById('gasto').value  = "";
   document.getElementById('motivo').value = "";
-
   cargar();
 }
 
-// ================== IMPRIMIR ==================
-function imprimirFactura(data){
-  let ventana = window.open("", "_blank", "width=400,height=600");
+// ================== IMPRIMIR CIERRE ==================
+function imprimirFactura(data) {
+  // Usar la misma lista combinada para el ticket
+  let lista = construirListaTransferencias(data);
+  if (!lista.length) lista = transferenciasList || [];
 
+  let transHTML = lista.length
+    ? lista.map(t => `
+        <tr>
+          <td>${t.banco       || 'S/B'}</td>
+          <td>${t.comprobante || 'S/N'}</td>
+          <td>$${t.monto      || 0}</td>
+          <td style="font-size:10px;color:#555">${t.motivo || ''}</td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="4" style="color:#999">Sin transferencias</td></tr>';
+
+  let gastosHTML = (data.gastosLista && data.gastosLista.length)
+    ? data.gastosLista.map(g => `- $${g.monto} | ${g.motivo}<br>`).join('')
+    : 'Sin gastos registrados';
+
+  let ventana = window.open("", "_blank", "width=400,height=700");
   ventana.document.write(`
     <html>
     <head>
       <title>Cierre Caja</title>
       <style>
-        body { font-family: monospace; width: 80mm; padding: 10px; }
-        h2 { text-align: center; }
-        .linea { border-top: 1px dashed #000; margin: 10px 0; }
+        body { font-family: monospace; width: 80mm; padding: 10px; font-size: 12px; }
+        h2 { text-align: center; margin-bottom: 8px; }
+        .linea { border-top: 1px dashed #000; margin: 8px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+        th { text-align: left; border-bottom: 1px solid #000; padding: 2px 0; }
+        td { padding: 2px 2px; }
+        .total { font-weight: bold; font-size: 13px; }
       </style>
     </head>
     <body>
 
-      <h2>📄 CIERRE CAJA</h2>
+      <h2>📄 CIERRE DE CAJA</h2>
 
       <div class="linea"></div>
-
-      <p>Apertura: $${data.apertura}</p>
-      <p>Ingresos: $${data.ingresos}</p>
-      <p>Gastos: $${data.gastos}</p>
-
-        <div class="linea"></div>
-
-      <p><b>Detalle gastos:</b></p>
-
-     ${
-     (data.gastosLista && data.gastosLista.length)
-     ? data.gastosLista.map(g =>
-        `- $${g.monto} | ${g.motivo} <br>`
-      ).join("")
-     : "Sin gastos registrados"
-      }
+      <p>Apertura:           $${data.apertura}</p>
+      <p>Ventas (efectivo):  $${data.ingresos}</p>
+      <p>Gastos:           - $${data.gastos}</p>
 
       <div class="linea"></div>
-
-      <p>Esperado: $${data.esperado}</p>
-      <p>Real: $${data.real}</p>
-      <p>Diferencia: $${data.diferencia}</p>
+      <b>Detalle Transferencias:</b>
+      <table>
+        <tr>
+          <th>Banco</th>
+          <th>Comprobante</th>
+          <th>Monto</th>
+          <th>Motivo</th>
+        </tr>
+        ${transHTML}
+      </table>
+      <p><b>Total Transferencias: $${data.transferencias}</b></p>
 
       <div class="linea"></div>
-
-      <p><b>Dejado: $${data.dejar ?? 0}</b></p>
+      <b>Detalle Gastos:</b><br>
+      ${gastosHTML}
 
       <div class="linea"></div>
+      <p>Esperado:    $${data.esperado}</p>
+      <p>Real:        $${data.real}</p>
+      <p>Diferencia:  $${data.diferencia}</p>
 
+      <div class="linea"></div>
+      <p class="total">Dejado en caja: $${data.dejar ?? 0}</p>
+
+      <div class="linea"></div>
       <p>${new Date().toLocaleString()}</p>
 
-      <script>
-        window.onload = () => window.print();
-      <\/script>
-
+      <script>window.onload = () => window.print();<\/script>
     </body>
     </html>
   `);
-
   ventana.document.close();
 }
 
 // ================== CERRAR ==================
-async function cerrar(){
+async function cerrar() {
+  let montoReal = prompt("¿Cuánto dinero hay en caja? (solo efectivo)");
+  let dejar     = prompt("¿Cuánto quieres dejar en caja?");
 
-  let montoReal = prompt("¿Cuánto dinero hay en caja?");
-  let dejar = prompt("¿Cuánto quieres dejar?");
+  if (!montoReal || isNaN(montoReal)) return alert("Monto inválido");
+  if (!dejar || isNaN(dejar)) dejar = 0;
 
-  if(!montoReal || isNaN(montoReal)) return alert("Monto inválido");
-  if(!dejar || isNaN(dejar)) dejar = 0;
-
-  try{
-    let res = await fetch(API + '/caja/cerrar',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ 
+  try {
+    let res = await fetch(API + '/caja/cerrar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         montoReal: Number(montoReal),
-        dejar: Number(dejar)
+        dejar:     Number(dejar)
       })
     });
-
     let data = await res.json();
 
-    if(!data.error){
+    if (!data.error) {
       imprimirFactura(data);
       alert("Caja cerrada ✔");
     } else {
       alert(data.error);
     }
-
-  }catch{
+  } catch {
     alert("❌ Error conexión");
   }
 
   cargar();
 }
 
+// Cargar al abrir la página
 cargar();
 
 </script>
-
 </body>
 </html>
