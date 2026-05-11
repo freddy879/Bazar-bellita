@@ -14,7 +14,10 @@
     input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input:not([type]) {
       padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px;
     }
-    input.error { border-color: #ff3f34; }
+    select {
+      padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box;
+      border: 1px solid #ddd; border-radius: 6px; font-family: 'Segoe UI'; font-size: 14px;
+    }
     button { padding: 8px 12px; border: none; background: #ff3f34; color: white; border-radius: 6px; cursor: pointer; }
     button:hover { background: #e03329; }
     ul { list-style: none; padding: 0; margin: 0; }
@@ -32,11 +35,11 @@
     }
     .modal-credito-box { background: white; padding: 24px; width: 320px; border-radius: 10px; }
     .modal-credito-box h3 { margin: 0 0 16px; }
-    .modal-credito-box input { margin-bottom: 10px; }
+    .modal-credito-box input, .modal-credito-box select { margin-bottom: 10px; }
     .modal-credito-box .btns { display: flex; gap: 10px; margin-top: 8px; }
     .modal-credito-box .btns button.cancel { background: #888; }
-    .pagoBtn { display: flex; gap: 10px; margin: 8px 0; }
-    .pagoBtn button { flex: 1; }
+    .pagoBtn { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+    .pagoBtn button { flex: 1; min-width: 80px; }
     .activo { background: #2ed573 !important; color: #1e272e !important; }
     .vuelto-ok { color: #27ae60; font-weight: 500; }
     .vuelto-falta { color: #ff3f34; font-weight: 500; }
@@ -61,6 +64,13 @@
       color: #c0392b; border-radius: 6px; padding: 8px 12px;
       margin: 6px 0; font-size: 13px; display: none;
     }
+    .banco-info {
+      background: #f0f7ff; border: 1px solid #b3d4f5;
+      border-radius: 8px; padding: 8px 12px;
+      font-size: 13px; color: #1a3c5e; margin-top: 6px; display: none;
+    }
+    .banco-info .banco-nombre { font-weight: bold; margin-bottom: 2px; }
+    .banco-info .cuenta-num { font-family: monospace; font-size: 15px; letter-spacing: 1px; color: #0056b3; }
   </style>
 </head>
 <body>
@@ -73,6 +83,7 @@
   <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
   <a href="cliente.html">👤 Clientes</a>
+  <a href="o.html">📊 Dashboard</a>
 </div>
 
 <div class="main">
@@ -92,17 +103,44 @@
       <input id="celular" placeholder="Celular" type="tel">
       <input id="correo" placeholder="Correo electrónico" type="email">
       <input id="descuento" type="number" placeholder="Descuento % (0–100)" min="0" max="100" step="0.01" oninput="clampDescuento(); actualizar()">
+
       <ul id="carrito"></ul>
+
       <div class="total-line">Total: $<span id="total">0.00</span></div>
       <div class="descuento-preview" id="descuentoPreview"></div>
+
       <div class="pagoBtn">
         <button onclick="setTipo('efectivo')" id="btnE" class="activo">Efectivo</button>
         <button onclick="setTipo('credito')" id="btnC">Crédito</button>
+        <button onclick="setTipo('transferencia')" id="btnT">Transferencia</button>
       </div>
+
+      <!-- Sección efectivo -->
       <div id="seccionEfectivo">
         <input id="montoRecibido" type="number" placeholder="Monto recibido" oninput="calcularVuelto()" min="0">
         <p id="vueltoTxt" class="vuelto-ok">Vuelto: $0.00</p>
       </div>
+
+      <!-- Sección transferencia -->
+      <div id="seccionTransferencia" style="display:none">
+        <select id="bancoPicker" onchange="mostrarBanco()">
+          <option value="">— Selecciona banco —</option>
+          <option value="guayaquil">🟦 Banco Guayaquil</option>
+          <option value="pichincha">🟨 Banco Pichincha</option>
+        </select>
+        <div class="banco-info" id="infoGuayaquil">
+          <div class="banco-nombre">🟦 Banco Guayaquil</div>
+          <div>Cuenta de Ahorros</div>
+          <div class="cuenta-num">0053165320</div>
+        </div>
+        <div class="banco-info" id="infoPichincha">
+          <div class="banco-nombre">🟨 Banco Pichincha</div>
+          <div>Cuenta de Ahorros</div>
+          <div class="cuenta-num">7893221489</div>
+        </div>
+        <input id="comprobante" type="text" placeholder="Número de comprobante *">
+      </div>
+
       <div class="alerta-error" id="alertaError"></div>
       <button class="btn-confirmar" id="btnConfirmar" onclick="facturar()">Confirmar venta</button>
     </div>
@@ -110,6 +148,7 @@
   </div>
 </div>
 
+<!-- Modal: factura -->
 <div class="overlay" id="overlay">
   <div class="factura">
     <div id="facturaContenido"></div>
@@ -120,6 +159,7 @@
   </div>
 </div>
 
+<!-- Modal: crédito -->
 <div class="modal-credito" id="modalCredito">
   <div class="modal-credito-box">
     <h3>💰 Detalles del crédito</h3>
@@ -137,6 +177,11 @@
 <script>
 const API = "https://bazar-bellita.onrender.com";
 
+const bancos = {
+  guayaquil: { nombre: "Banco Guayaquil", cuenta: "0053165320" },
+  pichincha:  { nombre: "Banco Pichincha", cuenta: "7893221489" }
+};
+
 let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
@@ -151,11 +196,25 @@ function setTipo(tipo) {
   tipoPago = tipo;
   document.getElementById("btnE").classList.toggle("activo", tipo === "efectivo");
   document.getElementById("btnC").classList.toggle("activo", tipo === "credito");
-  document.getElementById("seccionEfectivo").style.display = tipo === "efectivo" ? "block" : "none";
-  if (tipo === "credito") {
+  document.getElementById("btnT").classList.toggle("activo", tipo === "transferencia");
+  document.getElementById("seccionEfectivo").style.display      = tipo === "efectivo"     ? "block" : "none";
+  document.getElementById("seccionTransferencia").style.display = tipo === "transferencia" ? "block" : "none";
+  if (tipo !== "efectivo") {
     document.getElementById("montoRecibido").value = "";
     document.getElementById("vueltoTxt").textContent = "Vuelto: $0.00";
   }
+  if (tipo !== "transferencia") {
+    document.getElementById("bancoPicker").value = "";
+    document.getElementById("infoGuayaquil").style.display = "none";
+    document.getElementById("infoPichincha").style.display  = "none";
+    document.getElementById("comprobante").value = "";
+  }
+}
+
+function mostrarBanco() {
+  const val = document.getElementById("bancoPicker").value;
+  document.getElementById("infoGuayaquil").style.display = val === "guayaquil" ? "block" : "none";
+  document.getElementById("infoPichincha").style.display  = val === "pichincha"  ? "block" : "none";
 }
 
 function clampDescuento() {
@@ -168,8 +227,8 @@ function clampDescuento() {
 
 function calcularTotalFinal() {
   const subtotal = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
-  const porcentaje = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
-  return subtotal * (1 - porcentaje / 100);
+  const pct = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
+  return subtotal * (1 - pct / 100);
 }
 
 function calcularVuelto() {
@@ -198,11 +257,9 @@ async function buscarCliente() {
     if (data && data.nombre) {
       document.getElementById("cliente").value = data.nombre || "";
       document.getElementById("celular").value = data.telefono || "";
-      document.getElementById("correo").value = data.correo || "";
+      document.getElementById("correo").value  = data.correo || "";
     }
-  } catch (err) {
-    console.error("Error buscando cliente:", err);
-  }
+  } catch (err) { console.error("Error buscando cliente:", err); }
 }
 
 async function cargar() {
@@ -219,10 +276,10 @@ async function cargar() {
 }
 
 async function guardarClienteSiNoExiste() {
-  const nombre = document.getElementById("cliente").value.trim();
-  const cedula = document.getElementById("cedula").value.trim();
+  const nombre   = document.getElementById("cliente").value.trim();
+  const cedula   = document.getElementById("cedula").value.trim();
   const telefono = document.getElementById("celular").value.trim();
-  const correo = document.getElementById("correo").value.trim();
+  const correo   = document.getElementById("correo").value.trim();
   if (!cedula || !nombre) return;
   try {
     const res = await fetch(`${API}/clientes/${cedula}`);
@@ -235,9 +292,7 @@ async function guardarClienteSiNoExiste() {
         body: JSON.stringify({ nombre, cedula, telefono, correo })
       });
     }
-  } catch (err) {
-    console.error("Error guardando cliente:", err);
-  }
+  } catch (err) { console.error("Error guardando cliente:", err); }
 }
 
 function mostrar(lista) {
@@ -275,23 +330,19 @@ function agregar(id) {
   if (cantidadActual + cant > p.stock) {
     return alert(`Sin stock suficiente. Disponible: ${p.stock}, en carrito: ${cantidadActual}`);
   }
-  if (existe) {
-    existe.cantidad += cant;
-  } else {
-    carrito.push({ id, nombre: p.nombre, precio: Number(p.precioVenta), cantidad: cant });
-  }
+  if (existe) { existe.cantidad += cant; }
+  else { carrito.push({ id, nombre: p.nombre, precio: Number(p.precioVenta), cantidad: cant }); }
   actualizar();
 }
 
 function actualizar() {
   const subtotal = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
-  const porcentaje = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
-  const descuentoMonto = subtotal * (porcentaje / 100);
+  const pct = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
+  const descuentoMonto = subtotal * (pct / 100);
   const totalFinal = subtotal - descuentoMonto;
   document.getElementById("total").textContent = totalFinal.toFixed(2);
-  document.getElementById("descuentoPreview").textContent = porcentaje > 0
-    ? `Subtotal: $${subtotal.toFixed(2)} — Descuento: -$${descuentoMonto.toFixed(2)}`
-    : "";
+  document.getElementById("descuentoPreview").textContent = pct > 0
+    ? `Subtotal: $${subtotal.toFixed(2)} — Descuento: -$${descuentoMonto.toFixed(2)}` : "";
   document.getElementById("carrito").innerHTML = carrito.map(p => `
     <li>
       <span>${p.nombre} x${p.cantidad} = <b>$${(p.precio * p.cantidad).toFixed(2)}</b></span>
@@ -310,14 +361,14 @@ function pedirDatosCredito() {
   return new Promise((resolve, reject) => {
     resolveCredito = { resolve, reject };
     document.getElementById("inputInteres").value = "";
-    document.getElementById("inputMeses").value = "";
+    document.getElementById("inputMeses").value   = "";
     document.getElementById("modalCredito").style.display = "flex";
   });
 }
 
 function confirmarCredito() {
   const tasaPct = parseFloat(document.getElementById("inputInteres").value) || 0;
-  const meses = parseInt(document.getElementById("inputMeses").value) || 0;
+  const meses   = parseInt(document.getElementById("inputMeses").value) || 0;
   if (meses <= 0) { alert("Ingresa un número de meses válido (mínimo 1)"); return; }
   if (tasaPct < 0 || tasaPct > 100) { alert("El interés debe estar entre 0 y 100"); return; }
   document.getElementById("modalCredito").style.display = "none";
@@ -350,20 +401,18 @@ async function facturar() {
   if (carrito.length === 0) return mostrarAlerta("El carrito está vacío.");
 
   const subtotal = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
-  const porcentaje = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
-  const descuentoMonto = subtotal * (porcentaje / 100);
+  const pct = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
+  const descuentoMonto = subtotal * (pct / 100);
   let totalFinal = subtotal - descuentoMonto;
 
   let tasaPct = 0, montoInteres = 0, meses = 0;
-
   if (tipoPago === "credito") {
     try {
       const res = await pedirDatosCredito();
-      tasaPct = res.tasaPct;
-      meses = res.meses;
+      tasaPct = res.tasaPct; meses = res.meses;
     } catch (_) { return; }
     montoInteres = totalFinal * (tasaPct / 100);
-    totalFinal += montoInteres;
+    totalFinal  += montoInteres;
   }
 
   let pago = 0, vuelto = 0;
@@ -373,12 +422,23 @@ async function facturar() {
     vuelto = pago - totalFinal;
   }
 
+  let bancoKey = "", bancoNombre = "", bancoCuenta = "", comprobante = "";
+  if (tipoPago === "transferencia") {
+    bancoKey    = document.getElementById("bancoPicker").value;
+    comprobante = document.getElementById("comprobante").value.trim();
+    if (!bancoKey)    return mostrarAlerta("Selecciona un banco.");
+    if (!comprobante) return mostrarAlerta("Ingresa el número de comprobante.");
+    bancoNombre = bancos[bancoKey].nombre;
+    bancoCuenta = bancos[bancoKey].cuenta;
+  }
+
   const btnConfirmar = document.getElementById("btnConfirmar");
   btnConfirmar.disabled = true;
   btnConfirmar.innerHTML = '<span class="spinner"></span>Procesando...';
 
   await guardarClienteSiNoExiste();
 
+  // ---- Factura HTML ----
   let html = `
     <style>
       @media print {
@@ -400,7 +460,7 @@ async function facturar() {
     html += `<p>${p.nombre} x${p.cantidad} = <b>$${(p.precio * p.cantidad).toFixed(2)}</b></p>`;
   });
   html += `<hr><p>Subtotal: $${subtotal.toFixed(2)}</p>`;
-  if (porcentaje > 0) html += `<p>Descuento (${porcentaje}%): -$${descuentoMonto.toFixed(2)}</p>`;
+  if (pct > 0) html += `<p>Descuento (${pct}%): -$${descuentoMonto.toFixed(2)}</p>`;
   if (tipoPago === "credito") {
     html += `<p>Interés (${tasaPct}%): $${montoInteres.toFixed(2)}</p>`;
     html += `<p>Meses: ${meses}</p>`;
@@ -409,25 +469,38 @@ async function facturar() {
   if (tipoPago === "efectivo") {
     html += `<p>Pago: $${pago.toFixed(2)}</p><p>Vuelto: $${vuelto.toFixed(2)}</p>`;
   }
+  if (tipoPago === "transferencia") {
+    html += `<p>Banco: ${bancoNombre}</p>`;
+    html += `<p>Cuenta: ${bancoCuenta}</p>`;
+    html += `<p>Comprobante: ${comprobante}</p>`;
+  }
   html += `<p style="font-size:12px;color:#888;margin-top:12px">Tipo de pago: ${tipoPago}</p></div>`;
 
   document.getElementById("facturaContenido").innerHTML = html;
   document.getElementById("overlay").style.display = "flex";
 
   try {
+    // ✅ UNA SOLA llamada: el backend se encarga de registrar
+    //    la transferencia en caja internamente si tipo === "transferencia"
+    //    NO llamamos a /caja/transferencia por separado (eso causaba el duplicado)
     const resVenta = await fetch(`${API}/ventas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         cliente, cedula, celular, correo,
         productos: carrito, subtotal,
-        descuentoPct: porcentaje, descuentoMonto,
+        descuentoPct: pct, descuentoMonto,
         total: totalFinal, tipo: tipoPago,
-        meses, tasaInteres: tasaPct, montoInteres, pago, vuelto
+        meses, tasaInteres: tasaPct, montoInteres, pago, vuelto,
+        banco: bancoNombre, cuenta: bancoCuenta, comprobante
       })
     });
     if (!resVenta.ok) throw new Error("HTTP " + resVenta.status);
 
+    // ❌ ELIMINADO: ya no llamamos a /caja/transferencia por separado
+    // Esto era lo que causaba el duplicado (111 en ventas + 111 en caja = 222)
+
+    // Descontar stock
     const resultadosStock = await Promise.allSettled(
       carrito.map(p => fetch(`${API}/productos/vender/${p.id}`, {
         method: "PUT",
@@ -438,7 +511,6 @@ async function facturar() {
     const fallos = resultadosStock.filter(r => r.status === "rejected" || (r.value && !r.value.ok));
     if (fallos.length > 0) {
       mostrarAlerta(`⚠️ Venta guardada, pero ${fallos.length} producto(s) no actualizaron stock. Revisar bodega.`);
-      console.error("Fallos en stock:", fallos);
     }
 
     limpiarFormulario();
@@ -457,14 +529,17 @@ async function facturar() {
 function limpiarFormulario() {
   carrito = [];
   actualizar();
-  ["cliente", "cedula", "celular", "correo", "montoRecibido", "descuento"].forEach(id => {
+  ["cliente","cedula","celular","correo","montoRecibido","descuento","comprobante"].forEach(id => {
     document.getElementById(id).value = "";
   });
   document.getElementById("vueltoTxt").textContent = "Vuelto: $0.00";
-  document.getElementById("vueltoTxt").className = "vuelto-ok";
+  document.getElementById("vueltoTxt").className   = "vuelto-ok";
   document.getElementById("descuentoPreview").textContent = "";
   document.getElementById("lista").innerHTML = "";
-  document.getElementById("buscar").value = "";
+  document.getElementById("buscar").value    = "";
+  document.getElementById("bancoPicker").value = "";
+  document.getElementById("infoGuayaquil").style.display = "none";
+  document.getElementById("infoPichincha").style.display  = "none";
   setTipo("efectivo");
 }
 </script>
