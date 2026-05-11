@@ -2,45 +2,67 @@
 <html>
 <head>
   <title>Ventas - Bazar Bellita</title>
-
   <style>
     body { margin: 0; font-family: 'Segoe UI'; display: flex; background: #f5f6fa; }
-    .sidebar { width: 220px; background: #1e272e; color: white; height: 100vh; padding: 20px; }
+    .sidebar { width: 220px; background: #1e272e; color: white; height: 100vh; padding: 20px; box-sizing: border-box; }
     .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; margin-top: 10px; border-radius: 8px; }
     .sidebar a:hover { background: #485460; }
-    .main { flex: 1; }
+    .main { flex: 1; overflow-y: auto; }
     .header { background: #ff3f34; color: white; padding: 15px; font-size: 20px; }
     .contenido { padding: 20px; display: flex; gap: 20px; }
     .card { background: white; padding: 15px; border-radius: 12px; flex: 1; }
-
-    input { padding: 8px; margin: 5px; width: 90%; }
-    button { padding: 8px; border: none; background: #ff3f34; color: white; border-radius: 6px; cursor: pointer; }
-    ul { list-style: none; padding: 0; }
-
+    input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input:not([type]) {
+      padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px;
+    }
+    input.error { border-color: #ff3f34; }
+    button { padding: 8px 12px; border: none; background: #ff3f34; color: white; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #e03329; }
+    ul { list-style: none; padding: 0; margin: 0; }
     .overlay {
-      position: fixed;
-      top:0; left:0;
-      width:100%; height:100%;
-      background: rgba(0,0,0,0.6);
-      display:none;
-      justify-content:center;
-      align-items:center;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); display: none;
+      justify-content: center; align-items: center; z-index: 1000;
     }
-
-    .factura {
-      background:white;
-      padding:20px;
-      width:400px;
-      border-radius:10px;
+    .factura { background: white; padding: 20px; width: 420px; max-height: 80vh; overflow-y: auto; border-radius: 10px; }
+    .factura-btns { display: flex; gap: 10px; margin-top: 12px; }
+    .modal-credito {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); display: none;
+      justify-content: center; align-items: center; z-index: 1100;
     }
-
-    .pagoBtn { display:flex; gap:10px; margin:5px; }
-    .pagoBtn button { flex:1; }
-
-    .activo { background:#2ed573 !important; }
+    .modal-credito-box { background: white; padding: 24px; width: 320px; border-radius: 10px; }
+    .modal-credito-box h3 { margin: 0 0 16px; }
+    .modal-credito-box input { margin-bottom: 10px; }
+    .modal-credito-box .btns { display: flex; gap: 10px; margin-top: 8px; }
+    .modal-credito-box .btns button.cancel { background: #888; }
+    .pagoBtn { display: flex; gap: 10px; margin: 8px 0; }
+    .pagoBtn button { flex: 1; }
+    .activo { background: #2ed573 !important; color: #1e272e !important; }
+    .vuelto-ok { color: #27ae60; font-weight: 500; }
+    .vuelto-falta { color: #ff3f34; font-weight: 500; }
+    #carrito li { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+    #carrito li:last-child { border-bottom: none; }
+    #lista li { display: flex; align-items: center; justify-content: space-between; padding: 6px 4px; border-bottom: 1px solid #f5f5f5; font-size: 14px; }
+    #lista li:last-child { border-bottom: none; }
+    #lista li button { padding: 4px 10px; font-size: 13px; }
+    .total-line { font-size: 18px; font-weight: 600; margin: 10px 0 4px; }
+    .descuento-preview { font-size: 13px; color: #888; margin: 0 0 8px; }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-confirmar { width: 100%; padding: 10px; font-size: 16px; margin-top: 8px; }
+    .btn-confirmar:disabled { opacity: 0.6; cursor: not-allowed; }
+    .alerta-error {
+      background: #fff0f0; border: 1px solid #ff3f34;
+      color: #c0392b; border-radius: 6px; padding: 8px 12px;
+      margin: 6px 0; font-size: 13px; display: none;
+    }
   </style>
 </head>
-
 <body>
 
 <div class="sidebar">
@@ -51,418 +73,401 @@
   <a href="analisis.html">🔍 Historial</a>
   <a href="caja.html">💵 Caja</a>
   <a href="cliente.html">👤 Clientes</a>
-  <a href="o.html" class="active">📊 Dashboard</a>
+  <a href="o.html">📊 Dashboard</a>
 </div>
 
 <div class="main">
   <div class="header">🛒 Ventas</div>
-
   <div class="contenido">
 
     <div class="card">
-      <h3>Buscar producto</h3>
-      <input id="buscar" onkeyup="filtrar()">
+      <h3 style="margin:0 0 10px">Buscar producto</h3>
+      <input id="buscar" placeholder="Nombre o código..." oninput="filtrar()">
       <ul id="lista"></ul>
     </div>
 
     <div class="card">
-      <input id="cliente" placeholder="Cliente">
+      <h3 style="margin:0 0 10px">Nueva venta</h3>
+      <input id="cliente" placeholder="Cliente *">
       <input id="cedula" placeholder="Cédula">
-      <input id="celular" placeholder="Celular">
-      <input id="correo" placeholder="Correo electrónico">
-      <input id="descuento" type="number" placeholder="Descuento % (opcional)">
-      
+      <input id="celular" placeholder="Celular" type="tel">
+      <input id="correo" placeholder="Correo electrónico" type="email">
+      <input id="descuento" type="number" placeholder="Descuento % (0–100)" min="0" max="100" step="0.01" oninput="clampDescuento(); actualizar()">
       <ul id="carrito"></ul>
-
-      <h3>Total: $<span id="total">0</span></h3>
+      <div class="total-line">Total: $<span id="total">0.00</span></div>
+      <div class="descuento-preview" id="descuentoPreview"></div>
       <div class="pagoBtn">
-       <button onclick="setTipo('efectivo')" id="btnE">Efectivo</button>
-       <button onclick="setTipo('credito')" id="btnC">Crédito</button>
-     
+        <button onclick="setTipo('efectivo')" id="btnE" class="activo">Efectivo</button>
+        <button onclick="setTipo('credito')" id="btnC">Crédito</button>
       </div>
-
-     
-      <input id="montoRecibido" placeholder="Monto recibido" oninput="calcularVuelto()">
-
-      <p id="vueltoTxt">Vuelto: $0</p>
-
-      <button onclick="facturar()">Confirmar venta</button>
+      <div id="seccionEfectivo">
+        <input id="montoRecibido" type="number" placeholder="Monto recibido" oninput="calcularVuelto()" min="0">
+        <p id="vueltoTxt" class="vuelto-ok">Vuelto: $0.00</p>
+      </div>
+      <div class="alerta-error" id="alertaError"></div>
+      <button class="btn-confirmar" id="btnConfirmar" onclick="facturar()">Confirmar venta</button>
     </div>
 
   </div>
 </div>
 
 <div class="overlay" id="overlay">
-  <div class="factura" id="factura"></div>
+  <div class="factura">
+    <div id="facturaContenido"></div>
+    <div class="factura-btns">
+      <button onclick="window.print()">🖨️ Imprimir</button>
+      <button onclick="cerrarFactura()" style="background:#888">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-credito" id="modalCredito">
+  <div class="modal-credito-box">
+    <h3>💰 Detalles del crédito</h3>
+    <label>Interés %</label>
+    <input id="inputInteres" type="number" placeholder="Ej: 10" min="0" max="100" step="0.01">
+    <label>Número de meses</label>
+    <input id="inputMeses" type="number" placeholder="Ej: 6" min="1" step="1">
+    <div class="btns">
+      <button onclick="confirmarCredito()">Confirmar</button>
+      <button class="cancel" onclick="cancelarCredito()">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <script>
+const API = "https://bazar-bellita.onrender.com";
 
 let productos = [];
 let carrito = [];
 let tipoPago = "efectivo";
-
-// ================= TIPO =================
-function setTipo(tipo){
-  tipoPago = tipo;
-
-  document.getElementById("btnE").classList.remove("activo");
-  document.getElementById("btnC").classList.remove("activo");
-
-
-  if(tipo === "efectivo"){
-    document.getElementById("btnE").classList.add("activo");
-  }
-
-  if(tipo === "credito"){
-    document.getElementById("btnC").classList.add("activo");
-    document.getElementById("montoRecibido").value = "";
-  }
-
-}
-
-// ================= VUELTO =================
-function calcularVuelto(){
-  if(tipoPago !== "efectivo") return;
-
-  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
-  let pago = parseFloat(document.getElementById("montoRecibido").value);
-
-  if(isNaN(pago)){
-    document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
-    return;
-  }
-
-  let vuelto = pago - total;
-
-  document.getElementById("vueltoTxt").innerText =
-    "Vuelto: $" + (vuelto >= 0 ? vuelto.toFixed(2) : 0);
-}
-
-// ================= CLIENTE =================
-async function buscarCliente() {
-
-  let cedula = document.getElementById("cedula").value;
-
-  if (!cedula) return;
-
-  try {
-
-    let res = await fetch(`https://bazar-bellita.onrender.com/clientes/${cedula}`);
-
-    let data = await res.json();
-
-    document.getElementById("cliente").value = data?.nombre || "";
-
-    document.getElementById("celular").value = data?.telefono || "";
-
-    document.getElementById("correo").value = data?.correo || "";
-
-  } catch (err) {
-
-    console.log("Error buscando cliente", err);
-
-  }
-}
+let resolveCredito = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cedula").addEventListener("input", buscarCliente);
+  cargar();
 });
 
-// ================= CARGAR =================
+function setTipo(tipo) {
+  tipoPago = tipo;
+  document.getElementById("btnE").classList.toggle("activo", tipo === "efectivo");
+  document.getElementById("btnC").classList.toggle("activo", tipo === "credito");
+  document.getElementById("seccionEfectivo").style.display = tipo === "efectivo" ? "block" : "none";
+  if (tipo === "credito") {
+    document.getElementById("montoRecibido").value = "";
+    document.getElementById("vueltoTxt").textContent = "Vuelto: $0.00";
+  }
+}
+
+function clampDescuento() {
+  const input = document.getElementById("descuento");
+  let val = parseFloat(input.value);
+  if (isNaN(val)) return;
+  if (val < 0) input.value = 0;
+  if (val > 100) input.value = 100;
+}
+
+function calcularTotalFinal() {
+  const subtotal = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
+  const porcentaje = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
+  return subtotal * (1 - porcentaje / 100);
+}
+
+function calcularVuelto() {
+  if (tipoPago !== "efectivo") return;
+  const totalFinal = calcularTotalFinal();
+  const pago = parseFloat(document.getElementById("montoRecibido").value) || 0;
+  const el = document.getElementById("vueltoTxt");
+  if (pago <= 0) { el.textContent = "Vuelto: $0.00"; el.className = "vuelto-ok"; return; }
+  const vuelto = pago - totalFinal;
+  if (vuelto < 0) {
+    el.textContent = `Falta: $${Math.abs(vuelto).toFixed(2)}`;
+    el.className = "vuelto-falta";
+  } else {
+    el.textContent = `Vuelto: $${vuelto.toFixed(2)}`;
+    el.className = "vuelto-ok";
+  }
+}
+
+async function buscarCliente() {
+  const cedula = document.getElementById("cedula").value.trim();
+  if (!cedula) return;
+  try {
+    const res = await fetch(`${API}/clientes/${cedula}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.nombre) {
+      document.getElementById("cliente").value = data.nombre || "";
+      document.getElementById("celular").value = data.telefono || "";
+      document.getElementById("correo").value = data.correo || "";
+    }
+  } catch (err) {
+    console.error("Error buscando cliente:", err);
+  }
+}
+
 async function cargar() {
   try {
-    const res = await fetch('https://bazar-bellita.onrender.com/productos');
-
-    if (!res.ok) {
-      throw new Error("Error HTTP: " + res.status);
-    }
-
-    productos = await res.json();
-
-    if (!Array.isArray(productos)) {
-      throw new Error("Respuesta inválida del servidor");
-    }
-
-    mostrar([]);
-
+    const res = await fetch(`${API}/productos`);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error("Respuesta inválida");
+    productos = data;
   } catch (err) {
-    alert("Error cargando productos");
-    console.log("Error real:", err);
+    mostrarAlerta("Error cargando productos. Verifica la conexión.");
+    console.error("cargar():", err);
   }
 }
 
-//========GUARDAR CLIENTE SI NO EXISTE=====
-async function guardarClienteSiNoExiste(){
-
-  let nombre = document.getElementById("cliente").value;
-  let cedula = document.getElementById("cedula").value;
-  let telefono = document.getElementById("celular").value;
-  let correo = document.getElementById("correo").value;
-
-  if(!cedula || !nombre) return;
-
+async function guardarClienteSiNoExiste() {
+  const nombre = document.getElementById("cliente").value.trim();
+  const cedula = document.getElementById("cedula").value.trim();
+  const telefono = document.getElementById("celular").value.trim();
+  const correo = document.getElementById("correo").value.trim();
+  if (!cedula || !nombre) return;
   try {
-
-    let res = await fetch(`https://bazar-bellita.onrender.com/clientes/${cedula}`);
-
-    // 🔥 SOLO EXISTE SI REALMENTE VIENE JSON VÁLIDO
+    const res = await fetch(`${API}/clientes/${cedula}`);
     let data = null;
-
-    try {
-      data = await res.json();
-    } catch (e) {
-      data = null;
-    }
-
-    // 🔥 SI NO EXISTE → CREA
-    if(!res.ok || !data || !data.nombre){
-
-      await fetch(`https://bazar-bellita.onrender.com/clientes`, {
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok || !data || !data.nombre) {
+      await fetch(`${API}/clientes`, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          nombre,
-          cedula,
-          telefono,
-          correo
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, cedula, telefono, correo })
       });
-
-      console.log("Cliente creado automáticamente");
-      return;
     }
-
-    console.log("Cliente ya existe");
-
   } catch (err) {
-    console.log("Error guardando cliente", err);
+    console.error("Error guardando cliente:", err);
   }
 }
-// ================= MOSTRAR =================
-function mostrar(lista) {
-  let ul = document.getElementById('lista');
-  ul.innerHTML = '';
 
-  lista.forEach(p => {
-    ul.innerHTML += `
-      <li>
-        ${p.nombre} - $${p.precioVenta} (Stock: ${p.stock})
-        <button onclick="agregar('${p._id}')">+</button>
-      </li>
-    `;
-  });
+function mostrar(lista) {
+  document.getElementById("lista").innerHTML = lista.map(p => `
+    <li>
+      <span>${p.nombre} <small style="color:#888">$${Number(p.precioVenta).toFixed(2)} · Stock: ${p.stock}</small></span>
+      <button onclick="agregar('${p._id}')">+ Agregar</button>
+    </li>
+  `).join("");
 }
 
-// ================= FILTRAR =================
 function filtrar() {
-
-  let t = document.getElementById("buscar").value
-    .toLowerCase()
-    .trim();
-
-  // 🔥 si no hay texto limpiar lista
-  if(!t){
-    mostrar([]);
+  const t = document.getElementById("buscar").value.toLowerCase().trim();
+  if (!t) { document.getElementById("lista").innerHTML = ""; return; }
+  const f = productos.filter(p =>
+    (p.nombre || "").toLowerCase().includes(t) ||
+    (p.codigo || "").toLowerCase().includes(t)
+  );
+  if (f.length === 0) {
+    document.getElementById("lista").innerHTML = "<li style='color:#888;padding:8px 0'>No hay productos</li>";
     return;
   }
-
-  let f = productos.filter(p =>
-    (p.nombre || '').toLowerCase().includes(t) ||
-    (p.codigo || '').toLowerCase().includes(t)
-  );
-
   mostrar(f);
 }
 
-// ================= AGREGAR =================
 function agregar(id) {
-  let p = productos.find(x => x._id === id);
-
-  let cant = parseInt(prompt("Cantidad"));
-  if (!cant || cant <= 0) return;
-
-  if (cant > p.stock) return alert("Sin stock");
-
-  let existe = carrito.find(x => x.id === id);
-
+  const p = productos.find(x => x._id === id);
+  if (!p) return;
+  const cantStr = prompt(`Cantidad para "${p.nombre}" (stock: ${p.stock})`);
+  if (cantStr === null) return;
+  const cant = parseInt(cantStr);
+  if (!cant || cant <= 0) return alert("Cantidad inválida");
+  const existe = carrito.find(x => x.id === id);
+  const cantidadActual = existe ? existe.cantidad : 0;
+  if (cantidadActual + cant > p.stock) {
+    return alert(`Sin stock suficiente. Disponible: ${p.stock}, en carrito: ${cantidadActual}`);
+  }
   if (existe) {
     existe.cantidad += cant;
   } else {
-    carrito.push({
-      id,
-      nombre: p.nombre,
-      precio: p.precioVenta,
-      cantidad: cant
-    });
+    carrito.push({ id, nombre: p.nombre, precio: Number(p.precioVenta), cantidad: cant });
   }
-
   actualizar();
 }
 
-// ================= ACTUALIZAR =================
 function actualizar() {
-
-  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
-
-  document.getElementById('total').innerText = total.toFixed(2);
-
-  document.getElementById('carrito').innerHTML =
-
-    carrito.map(p =>
-
-      `
-      <li>
-        ${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}
-
-        <button onclick="eliminarProducto('${p.id}')">
-          ❌
-        </button>
-      </li>
-      `
-
-    ).join("");
+  const subtotal = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
+  const porcentaje = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
+  const descuentoMonto = subtotal * (porcentaje / 100);
+  const totalFinal = subtotal - descuentoMonto;
+  document.getElementById("total").textContent = totalFinal.toFixed(2);
+  document.getElementById("descuentoPreview").textContent = porcentaje > 0
+    ? `Subtotal: $${subtotal.toFixed(2)} — Descuento: -$${descuentoMonto.toFixed(2)}`
+    : "";
+  document.getElementById("carrito").innerHTML = carrito.map(p => `
+    <li>
+      <span>${p.nombre} x${p.cantidad} = <b>$${(p.precio * p.cantidad).toFixed(2)}</b></span>
+      <button onclick="eliminarProducto('${p.id}')" style="background:#e74c3c;padding:4px 8px">❌</button>
+    </li>
+  `).join("") || "<li style='color:#aaa;font-size:13px;padding:6px 0'>Carrito vacío</li>";
+  calcularVuelto();
 }
 
-//================ELIMINAR PRODUCTO ==================
-function eliminarProducto(id){
-
+function eliminarProducto(id) {
   carrito = carrito.filter(p => p.id !== id);
-
   actualizar();
 }
-// ================= FACTURAR =================
+
+function pedirDatosCredito() {
+  return new Promise((resolve, reject) => {
+    resolveCredito = { resolve, reject };
+    document.getElementById("inputInteres").value = "";
+    document.getElementById("inputMeses").value = "";
+    document.getElementById("modalCredito").style.display = "flex";
+  });
+}
+
+function confirmarCredito() {
+  const tasaPct = parseFloat(document.getElementById("inputInteres").value) || 0;
+  const meses = parseInt(document.getElementById("inputMeses").value) || 0;
+  if (meses <= 0) { alert("Ingresa un número de meses válido (mínimo 1)"); return; }
+  if (tasaPct < 0 || tasaPct > 100) { alert("El interés debe estar entre 0 y 100"); return; }
+  document.getElementById("modalCredito").style.display = "none";
+  if (resolveCredito) resolveCredito.resolve({ tasaPct, meses });
+}
+
+function cancelarCredito() {
+  document.getElementById("modalCredito").style.display = "none";
+  if (resolveCredito) resolveCredito.reject(new Error("Cancelado"));
+}
+
+function mostrarAlerta(msg) {
+  const el = document.getElementById("alertaError");
+  el.textContent = msg;
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+
+function cerrarFactura() {
+  document.getElementById("overlay").style.display = "none";
+}
+
 async function facturar() {
+  const cliente = document.getElementById("cliente").value.trim();
+  const cedula  = document.getElementById("cedula").value.trim();
+  const celular = document.getElementById("celular").value.trim();
+  const correo  = document.getElementById("correo").value.trim();
 
-  let cliente = document.getElementById('cliente').value;
-  let cedula = document.getElementById('cedula').value;
-  let celular = document.getElementById('celular').value; 
-  let correo = document.getElementById('correo').value;
- 
+  if (!cliente) return mostrarAlerta("El nombre del cliente es requerido.");
+  if (carrito.length === 0) return mostrarAlerta("El carrito está vacío.");
 
-  if(tipoPago === "transferencia" && !codigoTransferencia){
-   return alert("Ingresa el código de transferencia");
+  const subtotal = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
+  const porcentaje = Math.min(Math.max(parseFloat(document.getElementById("descuento").value) || 0, 0), 100);
+  const descuentoMonto = subtotal * (porcentaje / 100);
+  let totalFinal = subtotal - descuentoMonto;
+
+  let tasaPct = 0, montoInteres = 0, meses = 0;
+
+  if (tipoPago === "credito") {
+    try {
+      const res = await pedirDatosCredito();
+      tasaPct = res.tasaPct;
+      meses = res.meses;
+    } catch (_) { return; }
+    montoInteres = totalFinal * (tasaPct / 100);
+    totalFinal += montoInteres;
   }
 
-  // 🔥 SOLO CREA CLIENTE SI HAY DATOS REALES
-  if (cliente && cedula) {
-    await guardarClienteSiNoExiste();
-  }
-
-  if (!cliente) return alert("Cliente requerido");
-  if (carrito.length === 0) return alert("Carrito vacío");
-
-  let total = carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
-
-  // 🔥 DESCUENTO
-  let inputDesc = document.getElementById("descuento");
-  let porcentaje = parseFloat(inputDesc?.value);
-
-  if (isNaN(porcentaje) || porcentaje <= 0) {
-    porcentaje = 0;
-  }
-
-  let descuento = total * (porcentaje / 100);
-  let totalFinal = total - descuento;
-
-  // 🔥 PAGO
-  let pago = parseFloat(document.getElementById("montoRecibido").value) || 0;
-  let vuelto = 0;
-  let meses = 0;
-
-  if(tipoPago === "credito"){
-    meses = parseInt(prompt("Meses"));
-    if(!meses) return alert("Mes inválido");
-  }
-
-  if(tipoPago === "efectivo"){
-    if(pago < totalFinal) return alert("Pago insuficiente");
+  let pago = 0, vuelto = 0;
+  if (tipoPago === "efectivo") {
+    pago = parseFloat(document.getElementById("montoRecibido").value) || 0;
+    if (pago < totalFinal) return mostrarAlerta(`Pago insuficiente. Falta $${(totalFinal - pago).toFixed(2)}`);
     vuelto = pago - totalFinal;
   }
 
-  // ================= FACTURA HTML =================
-   // ================= FACTURA HTML =================
+  const btnConfirmar = document.getElementById("btnConfirmar");
+  btnConfirmar.disabled = true;
+  btnConfirmar.innerHTML = '<span class="spinner"></span>Procesando...';
+
+  await guardarClienteSiNoExiste();
+
   let html = `
-    <h2>FACTURA</h2>
-    <p>Cliente: ${cliente}</p>
-    <p>Cédula: ${cedula || "-"}</p>
-    <hr>
+    <style>
+      @media print {
+        body * { visibility: hidden; }
+        #facturaBox, #facturaBox * { visibility: visible; }
+        #facturaBox { position: absolute; left: 0; top: 0; width: 210mm; padding: 20px; }
+      }
+      #facturaBox { font-family: Arial; width: 100%; box-sizing: border-box; }
+      #facturaBox h2 { text-align: center; margin-bottom: 10px; }
+      #facturaBox hr { border: none; border-top: 1px solid #ccc; }
+    </style>
+    <div id="facturaBox">
+      <h2>FACTURA BAZAR BELLITA</h2>
+      <p><b>Cliente:</b> ${cliente || "-"}</p>
+      <p><b>Cédula:</b> ${cedula || "-"}</p>
+      <hr>
   `;
-
-  carrito.forEach(p=>{
-    html += `<p>${p.nombre} x${p.cantidad} = $${(p.precio*p.cantidad).toFixed(2)}</p>`;
+  carrito.forEach(p => {
+    html += `<p>${p.nombre} x${p.cantidad} = <b>$${(p.precio * p.cantidad).toFixed(2)}</b></p>`;
   });
-
-  html += `<hr>`;
-  html += `<p>Subtotal: $${total.toFixed(2)}</p>`;
-
-  if (porcentaje > 0) {
-    html += `<p>Descuento: ${porcentaje}% (-$${descuento.toFixed(2)})</p>`;
+  html += `<hr><p>Subtotal: $${subtotal.toFixed(2)}</p>`;
+  if (porcentaje > 0) html += `<p>Descuento (${porcentaje}%): -$${descuentoMonto.toFixed(2)}</p>`;
+  if (tipoPago === "credito") {
+    html += `<p>Interés (${tasaPct}%): $${montoInteres.toFixed(2)}</p>`;
+    html += `<p>Meses: ${meses}</p>`;
   }
-
   html += `<h2>Total: $${totalFinal.toFixed(2)}</h2>`;
-
-  if(tipoPago === "efectivo"){
-    html += `<p>Pago: $${pago.toFixed(2)}</p>`;
-    html += `<p>Vuelto: $${vuelto.toFixed(2)}</p>`;
+  if (tipoPago === "efectivo") {
+    html += `<p>Pago: $${pago.toFixed(2)}</p><p>Vuelto: $${vuelto.toFixed(2)}</p>`;
   }
+  html += `<p style="font-size:12px;color:#888;margin-top:12px">Tipo de pago: ${tipoPago}</p></div>`;
 
-  if(tipoPago === "transferencia"){
-    html += `<p>Código transferencia: ${codigoTransferencia}</p>`;
-  }
+  document.getElementById("facturaContenido").innerHTML = html;
+  document.getElementById("overlay").style.display = "flex";
 
-  document.getElementById('factura').innerHTML = html;
-  document.getElementById('overlay').style.display = 'flex';
-
-  // ================= PROCESO FINAL =================
-  setTimeout(async () => {
-
-    await Promise.all(carrito.map(p =>
-      fetch(`https://bazar-bellita.onrender.com/productos/vender/${p.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cantidad: p.cantidad })
-      })
-    ));
-
-    await fetch('https://bazar-bellita.onrender.com/ventas', {
+  try {
+    const resVenta = await fetch(`${API}/ventas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        cliente,
-        cedula,
-        celular,
-        correo,
-        productos: carrito,
-        total: totalFinal,
-        tipo: tipoPago,
-        meses,
-        pago,
-        vuelto,
-      
+        cliente, cedula, celular, correo,
+        productos: carrito, subtotal,
+        descuentoPct: porcentaje, descuentoMonto,
+        total: totalFinal, tipo: tipoPago,
+        meses, tasaInteres: tasaPct, montoInteres, pago, vuelto
       })
     });
+    if (!resVenta.ok) throw new Error("HTTP " + resVenta.status);
 
-    window.print();
+    const resultadosStock = await Promise.allSettled(
+      carrito.map(p => fetch(`${API}/productos/vender/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cantidad: p.cantidad })
+      }))
+    );
+    const fallos = resultadosStock.filter(r => r.status === "rejected" || (r.value && !r.value.ok));
+    if (fallos.length > 0) {
+      mostrarAlerta(`⚠️ Venta guardada, pero ${fallos.length} producto(s) no actualizaron stock. Revisar bodega.`);
+      console.error("Fallos en stock:", fallos);
+    }
 
-    carrito = [];
-    actualizar();
-
-    document.getElementById("overlay").style.display = "none";
-    document.getElementById("cliente").value = "";
-    document.getElementById("cedula").value = "";
-    document.getElementById("celular").value = "";
-    document.getElementById("correo").value = "";
-    document.getElementById("montoRecibido").value = "";
-    document.getElementById("vueltoTxt").innerText = "Vuelto: $0";
-
+    limpiarFormulario();
     await cargar();
 
-  }, 300);
+  } catch (err) {
+    console.error("Error en facturación:", err);
+    mostrarAlerta("Error al guardar la venta. Intenta de nuevo.");
+    document.getElementById("overlay").style.display = "none";
+  } finally {
+    btnConfirmar.disabled = false;
+    btnConfirmar.innerHTML = "Confirmar venta";
+  }
 }
 
-cargar();
-
+function limpiarFormulario() {
+  carrito = [];
+  actualizar();
+  ["cliente", "cedula", "celular", "correo", "montoRecibido", "descuento"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("vueltoTxt").textContent = "Vuelto: $0.00";
+  document.getElementById("vueltoTxt").className = "vuelto-ok";
+  document.getElementById("descuentoPreview").textContent = "";
+  document.getElementById("lista").innerHTML = "";
+  document.getElementById("buscar").value = "";
+  setTipo("efectivo");
+}
 </script>
 
 </body>
