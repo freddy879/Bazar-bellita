@@ -1,12 +1,10 @@
 require('dotenv').config();
 
-const express = require('express');
+const express  = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const { Caja } = require('./caja');
+const cors     = require('cors');
 
-const app = express(); // 👈 PRIMERO CREAS app
-
+const app = express();
 
 app.use(cors());
 app.use(express.json());
@@ -14,829 +12,668 @@ app.use(express.static('public'));
 
 // ================== DEBUG ==================
 console.log("USER:", process.env.MONGO_USER);
-console.log("DB:", process.env.MONGO_DB);
+console.log("DB:",   process.env.MONGO_DB);
 
-// ================== MONGO CONFIG ==================
+// ================== MONGO ==================
 const user = process.env.MONGO_USER;
 const pass = encodeURIComponent(process.env.MONGO_PASS);
-const db = process.env.MONGO_DB;
+const db   = process.env.MONGO_DB;
 
 const URI = `mongodb+srv://${user}:${pass}@cluster0.8otlbi7.mongodb.net/${db}?retryWrites=true&w=majority`;
 
-// ================== CONEXIÓN MONGO ==================
 mongoose.set('strictQuery', false);
-
 mongoose.connect(URI, {
   serverSelectionTimeoutMS: 5000,
-  maxPoolSize: 20,        // 🔥 más conexiones
-  socketTimeoutMS: 45000, // 🔥 evita cortes
+  maxPoolSize: 20,
+  socketTimeoutMS: 45000,
 })
-
-.then(() => console.log("✅ Mongo conectado rápido"))
+.then(() => console.log("✅ Mongo conectado"))
 .catch(err => console.log("❌ Error Mongo:", err));
+
 // ================== MODELOS ==================
+
 const Producto = mongoose.model('Producto', {
-  nombre: String,
-  codigo: String,
+  nombre:      String,
+  codigo:      String,
   precioVenta: Number,
-  precioCompra: Number,
-  stock: Number
+  precioCompra:Number,
+  stock:       Number
 });
 
 const Venta = mongoose.model('Venta', {
-  cliente: String,
-  cedula: String,
-  celular: String,
-  correo: String,
-
+  cliente:  String,
+  cedula:   String,
+  celular:  String,
+  correo:   String,
   productos: Array,
-
-  total: Number,
-  tipo: String,
-  meses: Number,
-
-  pago: Number,
-  vuelto: Number,
-
+  subtotal:  Number,
+  descuentoPct:   Number,
+  descuentoMonto: Number,
+  total:    Number,
+  tipo:     String,
+  meses:    Number,
+  tasaInteres:  Number,
+  montoInteres: Number,
+  pago:     Number,
+  vuelto:   Number,
+  banco:    String,
+  cuenta:   String,
+  comprobante: String,
   fecha: { type: Date, default: Date.now }
 });
 
-// ================== DEUDAS ==================
 const Deuda = mongoose.model('Deuda', {
-  cliente: String,
-  cedula: String,
-  celular: String,
+  cliente:   String,
+  cedula:    String,
+  celular:   String,
   direccion: String,
-  total: Number,
-  pagado: { type: Number, default: 0 },
-
-  productos: { type: Array, default: [] },
-
-  pagos: [
-    {
-      monto: Number,
-      fecha: { type: Date, default: Date.now }
-    }
-  ],
-
+  correo:    String,
+  total:     Number,
+  pagado:    { type: Number, default: 0 },
+  productos: { type: Array,  default: [] },
+  pagos: [{
+    monto: Number,
+    fecha: { type: Date, default: Date.now }
+  }],
   fecha: { type: Date, default: Date.now }
 });
-exports.Deuda = Deuda;
 
-
-app.get('/deudas', async (req, res) => {
-  res.json(await Deuda.find().sort({ fecha: -1 }));
-});
-
-
-// ================== ELIMINAR DEUDA ==================
-app.delete('/deudas/:id', async (req, res) => {
-
-  try {
-
-    await Deuda.findByIdAndDelete(req.params.id);
-
-    res.json({ ok: true });
-
-  } catch(err){
-
-    console.log(err);
-    res.status(500).json({ error: "Error al eliminar" });
-
-  }
-
-});
-
-
-// ================== CAJA ==================
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    ok: true,
-    message: "Servidor activo",
-    time: new Date()
-  });
-});
-
-// ================== EDITAR DEUDA ==================
-app.put('/deudas/:id', async (req, res) => {
-
-  try {
-    console.log(req.body);
-    
-    const deuda = await Deuda.findById(req.params.id);
-
-    if(!deuda){
-      return res.status(404).json({
-        error: "Deuda no encontrada"
-      });
-    }
-    if(req.body.cliente !== undefined){
-    deuda.cliente = req.body.cliente;
-    }
-
-   if(req.body.cedula !== undefined){
-   deuda.cedula = req.body.cedula;
-   }
-
-   if(req.body.celular !== undefined){
-   deuda.celular = req.body.celular;
-   }
-
-   if(req.body.direccion !== undefined){
-   deuda.direccion = req.body.direccion;
-   }
-
-   if(req.body.total !== undefined){
-  deuda.total = Number(req.body.total);
-  }
-
- 
-    await deuda.save();
-
-    res.json({
-      ok: true,
-      mensaje: "Deuda editada correctamente",
-      deuda
-    });
-
-  } catch(err){
-
-    console.log(err);
-
-    res.status(500).json({
-      error: "Error al editar deuda"
-    });
-
-  }
-
-});
-
-
- // ================== CLIENTES ==================
 const Cliente = mongoose.model('Cliente', {
-
-  nombre: String,
-  cedula: String,
+  nombre:    String,
+  cedula:    String,
   direccion: String,
-  telefono: String,
-  correo: String,
-
-  deudaTotal: { type: Number, default: 0 },
+  telefono:  String,
+  correo:    String,
+  deudaTotal:  { type: Number, default: 0 },
   deudaActual: { type: Number, default: 0 },
-  estado: { type: String, default: "normal" },
-
+  estado:      { type: String, default: "normal" },
   fecha: { type: Date, default: Date.now }
-
 });
 
-
-// ================== CREAR CLIENTE ==================
-app.post('/clientes', async (req, res) => {
-  try {
-
-    const cliente = new Cliente(req.body);
-    await cliente.save();
-
-    res.json({ ok: true, cliente });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error al guardar cliente" });
-  }
+// 🔥 CAJA — modelo completo con horaApertura y horaCierre
+const CajaSchema = new mongoose.Schema({
+  apertura:     { type: Number, default: 0 },
+  ingresos:     { type: Number, default: 0 },
+  gastos:       { type: Number, default: 0 },
+  activa:       { type: Boolean, default: false },
+  cierre:       { type: Number, default: 0 },
+  dejado:       { type: Number, default: 0 },
+  horaApertura: { type: Date, default: Date.now },
+  horaCierre:   { type: Date },
+  movimientos: [{
+    tipo:        String,
+    monto:       Number,
+    motivo:      String,
+    banco:       String,
+    cuenta:      String,
+    comprobante: String,
+    remitente:   String,
+    fecha:       { type: Date, default: Date.now }
+  }]
 });
+const Caja = mongoose.model('Caja', CajaSchema);
 
-
-// ================== LISTAR CLIENTES ==================
-app.get('/clientes', async (req, res) => {
-  try {
-    const clientes = await Cliente.find().sort({ fecha: -1 });
-    res.json(clientes);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json([]);
-  }
-});
-
-
-// ================== BUSCAR CLIENTE POR CÉDULA ==================
-app.get('/clientes/:cedula', async (req, res) => {
-  try {
-    const cliente = await Cliente.findOne({ cedula: req.params.cedula });
-    res.json(cliente || null);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json(null);
-  }
-});
-
-
-// ================== ELIMINAR CLIENTE ==================
-app.delete('/clientes/:id', async (req, res) => {
-  try {
-
-    const cliente = await Cliente.findById(req.params.id);
-
-    if (!cliente) {
-      return res.json({ error: "Cliente no encontrado" });
-    }
-
-    await Cliente.findByIdAndDelete(req.params.id);
-
-    res.json({ ok: true });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error interno" });
-  }
-});
-
-
-// ================== 🔥 SINCRONIZAR DEUDA (IMPORTANTE) ==================
-// 👉 LLÁMALO DESDE /deudas o /ventas cuando creas deuda
-
-app.post('/clientes/sumar-deuda', async (req, res) => {
-
-  try {
-
-    const { cedula, total } = req.body;
-
-    const cliente = await Cliente.findOne({ cedula });
-
-    if (!cliente) {
-      return res.status(404).json({ error: "Cliente no encontrado" });
-    }
-
-    cliente.deudaTotal += Number(total);
-    cliente.deudaActual += Number(total);
-    cliente.estado = "deudor";
-
-    await cliente.save();
-
-    res.json({ ok: true, cliente });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error al actualizar deuda" });
-  }
-});
-
-
-// ================== 🔥 ABONO A DEUDA ==================
-// 👉 LLÁMALO cuando paguen deuda
-
-app.post('/clientes/abonar', async (req, res) => {
-
-  try {
-
-    const { cedula, monto } = req.body;
-
-    const cliente = await Cliente.findOne({ cedula });
-
-    if (!cliente) {
-      return res.status(404).json({ error: "Cliente no encontrado" });
-    }
-
-    cliente.deudaActual -= Number(monto);
-
-    if (cliente.deudaActual <= 0) {
-      cliente.deudaActual = 0;
-      cliente.estado = "normal";
-    }
-
-    await cliente.save();
-
-    res.json({ ok: true, cliente });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error al abonar deuda" });
-  }
-});
-
-// ================= EDITAR CLIENTE =================
-app.put('/clientes/editar', async (req, res) => {
-  try {
-    const { id, nombre, cedula, telefono } = req.body;
-
-    let cliente = await Cliente.findById(id);
-    if (!cliente) return res.json({ error: "No encontrado" });
-
-    cliente.nombre = nombre;
-    cliente.cedula = cedula;
-    cliente.telefono = telefono;
-
-    await cliente.save();
-
-    res.json({ ok: true });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error al editar cliente" });
-  }
+// ================== HEALTH ==================
+app.get('/health', (req, res) => {
+  res.json({ ok: true, message: "Servidor activo", time: new Date() });
 });
 
 // ================== PRODUCTOS ==================
 app.get('/productos', async (req, res) => {
-  try {
-    res.json(await Producto.find());
-  } catch (err) {
-    console.log("Error productos:", err.message);
-    res.json([]);
-  }
+  try { res.json(await Producto.find()); }
+  catch (err) { console.error(err); res.json([]); }
 });
 
 app.post('/productos', async (req, res) => {
-  await new Producto(req.body).save();
-  res.json({ ok: true });
+  try {
+    await new Producto(req.body).save();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al crear producto" }); }
 });
 
 app.put('/productos/:id', async (req, res) => {
-  await Producto.findByIdAndUpdate(req.params.id, req.body);
-  res.json({ ok: true });
+  try {
+    await Producto.findByIdAndUpdate(req.params.id, req.body);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al editar producto" }); }
 });
 
 app.put('/productos/agregar/:id', async (req, res) => {
-  const p = await Producto.findById(req.params.id);
-  if (!p) return res.json({ error: "No existe" });
-
-  p.stock += Number(req.body.cantidad);
-  await p.save();
-
-  res.json({ ok: true });
+  try {
+    const p = await Producto.findById(req.params.id);
+    if (!p) return res.json({ error: "No existe" });
+    p.stock += Number(req.body.cantidad);
+    await p.save();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al agregar stock" }); }
 });
 
 app.put('/productos/vender/:id', async (req, res) => {
-  const p = await Producto.findById(req.params.id);
-  if (!p) return res.json({ error: "No existe" });
-
-  p.stock -= Number(req.body.cantidad);
-  if (p.stock < 0) p.stock = 0;
-
-  await p.save();
-
-  res.json({ ok: true });
+  try {
+    const p = await Producto.findById(req.params.id);
+    if (!p) return res.json({ error: "No existe" });
+    p.stock -= Number(req.body.cantidad);
+    if (p.stock < 0) p.stock = 0;
+    await p.save();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al vender" }); }
 });
 
 app.delete('/productos/:id', async (req, res) => {
   try {
     await Producto.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: "Error interno" });
-  }
+  } catch (err) { res.status(500).json({ error: "Error al eliminar" }); }
+});
+
+// ================== CLIENTES ==================
+app.post('/clientes', async (req, res) => {
+  try {
+    const cliente = new Cliente(req.body);
+    await cliente.save();
+    res.json({ ok: true, cliente });
+  } catch (err) { res.status(500).json({ error: "Error al guardar cliente" }); }
+});
+
+app.get('/clientes', async (req, res) => {
+  try { res.json(await Cliente.find().sort({ fecha: -1 })); }
+  catch (err) { res.status(500).json([]); }
+});
+
+// ⚠️ Esta ruta debe ir ANTES de /clientes/:id para no colisionar
+app.post('/clientes/sumar-deuda', async (req, res) => {
+  try {
+    const { cedula, total } = req.body;
+    const cliente = await Cliente.findOne({ cedula });
+    if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
+    cliente.deudaTotal  += Number(total);
+    cliente.deudaActual += Number(total);
+    cliente.estado = "deudor";
+    await cliente.save();
+    res.json({ ok: true, cliente });
+  } catch (err) { res.status(500).json({ error: "Error al actualizar deuda" }); }
+});
+
+app.post('/clientes/abonar', async (req, res) => {
+  try {
+    const { cedula, monto } = req.body;
+    const cliente = await Cliente.findOne({ cedula });
+    if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
+    cliente.deudaActual -= Number(monto);
+    if (cliente.deudaActual <= 0) { cliente.deudaActual = 0; cliente.estado = "normal"; }
+    await cliente.save();
+    res.json({ ok: true, cliente });
+  } catch (err) { res.status(500).json({ error: "Error al abonar" }); }
+});
+
+app.put('/clientes/editar', async (req, res) => {
+  try {
+    const { id, nombre, cedula, telefono } = req.body;
+    const cliente = await Cliente.findById(id);
+    if (!cliente) return res.json({ error: "No encontrado" });
+    cliente.nombre   = nombre;
+    cliente.cedula   = cedula;
+    cliente.telefono = telefono;
+    await cliente.save();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al editar cliente" }); }
+});
+
+app.get('/clientes/:cedula', async (req, res) => {
+  try {
+    const cliente = await Cliente.findOne({ cedula: req.params.cedula });
+    res.json(cliente || null);
+  } catch (err) { res.status(500).json(null); }
+});
+
+app.delete('/clientes/:id', async (req, res) => {
+  try {
+    await Cliente.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al eliminar cliente" }); }
 });
 
 // ================== VENTAS ==================
 app.post('/ventas', async (req, res) => {
+  try {
+    await new Venta(req.body).save();
 
-  // 🔥 GUARDAR VENTA
-  await new Venta(req.body).save();
+    const caja = await Caja.findOne({ activa: true });
 
-  // ================= EFECTIVO =================
-  if (req.body.tipo === "efectivo") {
-
-    let caja = await Caja.findOne({ activa: true });
-
-    if (caja) {
+    // Efectivo → suma ingresos en caja
+    if (req.body.tipo === "efectivo" && caja) {
       caja.ingresos += Number(req.body.total || 0);
-
-      if (!caja.movimientos) caja.movimientos = [];
       caja.movimientos.push({
-        tipo: "ingreso",
-        monto: req.body.total,
-        motivo: "Venta"
+        tipo: "ingreso", monto: req.body.total, motivo: "Venta efectivo"
       });
-
       await caja.save();
     }
+
+    // Crédito → crear deuda
+    if (req.body.tipo === "credito") {
+      await new Deuda({
+        cliente:  req.body.cliente,
+        cedula:   req.body.cedula   || "SIN CÉDULA",
+        celular:  req.body.celular  || "",
+        correo:   req.body.correo   || "",
+        direccion:req.body.direccion|| "",
+        total:    req.body.total,
+        pagado:   0,
+        productos:req.body.productos || [],
+        pagos:    []
+      }).save();
+    }
+
+    // Transferencia → registrar en caja automáticamente
+    if (req.body.tipo === "transferencia" && caja) {
+      caja.ingresos += Number(req.body.total || 0);
+      caja.movimientos.push({
+        tipo:        "transferencia",
+        monto:       Number(req.body.total || 0),
+        motivo:      `Transferencia venta — ${req.body.banco || ""}`,
+        banco:       req.body.banco       || "",
+        cuenta:      req.body.cuenta      || "",
+        comprobante: req.body.comprobante || "",
+        remitente:   req.body.cliente     || ""
+      });
+      await caja.save();
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Error /ventas:", err);
+    res.status(500).json({ error: "Error al guardar venta" });
   }
-
-  // ================= CREDITO =================
-   if (req.body.tipo === "credito") {
-
-    await new Deuda({
-     cliente: req.body.cliente,
-     cedula: req.body.cedula || "SIN CÉDULA",
-     celular: req.body.celular || "",
-     direccion: req.body.direccion || "",
-     total: req.body.total,
-     pagado: 0,
-     productos: req.body.productos || [],
-     pagos: []
-    }).save();
-  }
-
-  res.json({ ok: true });
 });
 
-//-------Deuda-----------
+app.delete('/ventas/dia', async (req, res) => {
+  try {
+    const { fecha } = req.body;
+    if (!fecha) return res.status(400).json({ error: "Falta fecha" });
+    const inicio = new Date(fecha + "T00:00:00.000Z");
+    const fin    = new Date(fecha + "T23:59:59.999Z");
+    const resultado = await Venta.deleteMany({ fecha: { $gte: inicio, $lte: fin } });
+    res.json({ ok: true, msg: `${resultado.deletedCount} venta(s) eliminadas`, deleted: resultado.deletedCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al borrar día" });
+  }
+});
+
+// ================== DEUDAS ==================
+app.get('/deudas', async (req, res) => {
+  res.json(await Deuda.find().sort({ fecha: -1 }));
+});
+
 app.post('/deudas', async (req, res) => {
   try {
-
-  let nueva = new Deuda({
-  cliente: req.body.cliente || "",
-  cedula: req.body.cedula || "-",
-  celular: req.body.celular || "",
-  direccion: req.body.direccion || "",
-  correo: req.body.correo || "",
-
-  total: Number(req.body.total || 0),
-  pagado: 0,
-
-  productos: req.body.productos || [],
-  pagos: [],
-  fecha: new Date()
-});
-
-await nueva.save();
-
-res.json(nueva);;
-
+    const nueva = new Deuda({
+      cliente:  req.body.cliente   || "",
+      cedula:   req.body.cedula    || "-",
+      celular:  req.body.celular   || "",
+      direccion:req.body.direccion || "",
+      correo:   req.body.correo    || "",
+      total:    Number(req.body.total || 0),
+      pagado:   0,
+      productos:req.body.productos || [],
+      pagos:    [],
+      fecha:    new Date()
+    });
+    await nueva.save();
+    res.json(nueva);
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ error: "Error al crear deuda" });
   }
 });
-// ================== ABONAR ==================
+
 app.post('/deudas/pagar', async (req, res) => {
+  try {
+    const deuda = await Deuda.findById(req.body.id);
+    if (!deuda) return res.json({ error: "Deuda no encontrada" });
 
-  let deuda = await Deuda.findById(req.body.id);
-  if (!deuda) return res.json({ error: "Deuda no encontrada" });
+    const monto = Number(req.body.monto);
+    if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
 
-  let monto = Number(req.body.monto);
-  if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
+    const restante = deuda.total - deuda.pagado;
+    if (monto > restante) return res.json({ error: "No puedes pagar más de la deuda" });
 
-  let restante = deuda.total - deuda.pagado;
+    deuda.pagado += monto;
+    deuda.pagos.push({ monto, fecha: new Date() });
+    await deuda.save();
 
-  if (monto > restante) return res.json({ error: "No puedes pagar más de la deuda" });
+    // Registrar abono en caja
+    const caja = await Caja.findOne({ activa: true });
+    if (caja) {
+      caja.ingresos += monto;
+      caja.movimientos.push({ tipo: "ingreso", monto, motivo: "Abono deuda" });
+      await caja.save();
+    }
 
-  deuda.pagado += monto;
-
-  deuda.pagos.push({
-    monto,
-    fecha: new Date()
-  });
-
-  await deuda.save();
-
-  let caja = await Caja.findOne({ activa: true });
-
-  if (caja) {
-    caja.ingresos += monto;
-
-    if (!caja.movimientos) caja.movimientos = [];
-    caja.movimientos.push({
-      tipo: "ingreso",
+    res.json({
+      cliente:  deuda.cliente,
+      celular:  deuda.celular || "",
       monto,
-      motivo: "Abono deuda"
+      total:    deuda.total,
+      restante: deuda.total - deuda.pagado,
+      pagos:    deuda.pagos    || [],
+      productos:deuda.productos || []
     });
-
-    await caja.save();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al abonar" });
   }
+});
 
-  res.json({
-    cliente: deuda.cliente,
-    celular: deuda.celular || "",
-    monto,
-    total: deuda.total,
-    restante: deuda.total - deuda.pagado,
-    pagos: deuda.pagos || [],
-    productos: deuda.productos || []
-  });
+app.put('/deudas/:id', async (req, res) => {
+  try {
+    const deuda = await Deuda.findById(req.params.id);
+    if (!deuda) return res.status(404).json({ error: "Deuda no encontrada" });
+    if (req.body.cliente   !== undefined) deuda.cliente   = req.body.cliente;
+    if (req.body.cedula    !== undefined) deuda.cedula    = req.body.cedula;
+    if (req.body.celular   !== undefined) deuda.celular   = req.body.celular;
+    if (req.body.direccion !== undefined) deuda.direccion = req.body.direccion;
+    if (req.body.total     !== undefined) deuda.total     = Number(req.body.total);
+    await deuda.save();
+    res.json({ ok: true, deuda });
+  } catch (err) {
+    res.status(500).json({ error: "Error al editar deuda" });
+  }
+});
+
+app.delete('/deudas/:id', async (req, res) => {
+  try {
+    await Deuda.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al eliminar deuda" }); }
 });
 
 // ================== CAJA ==================
 app.post('/caja/abrir', async (req, res) => {
+  try {
+    const monto = Number(req.body.monto);
+    if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
 
-  let monto = Number(req.body.monto);
+    // Cerrar caja anterior si quedó abierta
+    const abierta = await Caja.findOne({ activa: true });
+    if (abierta) {
+      abierta.activa     = false;
+      abierta.horaCierre = new Date();
+      await abierta.save();
+    }
 
-  let abierta = await Caja.findOne({ activa: true });
+    await new Caja({
+      apertura:     monto,
+      ingresos:     0,
+      gastos:       0,
+      activa:       true,
+      horaApertura: new Date(),
+      movimientos: [{ tipo: "inicio", monto, motivo: "Apertura de caja" }]
+    }).save();
 
-  if (abierta) {
-    abierta.activa = false;
-    abierta.horaCierre = new Date();
-    await abierta.save();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al abrir caja" });
   }
-
-  await new Caja({
-    apertura: monto,
-    ingresos: 0,
-    gastos: 0,
-    activa: true,
-    movimientos: [
-      {
-        tipo: "inicio",
-        monto,
-        motivo: "Apertura de caja"
-      }
-    ]
-  }).save();
-
-  res.json({ ok: true });
 });
 
 app.get('/caja', async (req, res) => {
+  try {
+    const caja = await Caja.findOne({ activa: true });
+    if (!caja) return res.json({ apertura: 0, ingresos: 0, gastos: 0, transferencias: 0, saldo: 0 });
 
-  let caja = await Caja.findOne({ activa: true });
+    let transferencias = 0;
+    let gastosLista = [];
+    let transferenciasList = [];
 
-  if (!caja) {
-    return res.json({
-      apertura: 0,
-      ingresos: 0,
-      transferencias: 0,
-      gastos: 0,
-      saldo: 0
+    (caja.movimientos || []).forEach(m => {
+      if (m.tipo === "transferencia") {
+        transferencias += m.monto;
+        transferenciasList.push(m);
+      }
+      if (m.tipo === "gasto") {
+        gastosLista.push(m);
+      }
     });
+
+    res.json({
+      apertura:         caja.apertura,
+      ingresos:         caja.ingresos,
+      transferencias,
+      gastos:           caja.gastos,
+      saldo:            caja.apertura + caja.ingresos - caja.gastos,
+      horaApertura:     caja.horaApertura,
+      gastosLista,
+      transferenciasList,
+      movimientos:      caja.movimientos || []
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener caja" });
   }
-
-  let transferencias = 0;
-
-  (caja.movimientos || []).forEach(m => {
-    if (m.tipo === "transferencia") {
-      transferencias += Number(m.monto || 0);
-    }
-  });
-
-  res.json({
-    apertura: caja.apertura || 0,
-    ingresos: caja.ingresos || 0,
-    transferencias,
-    gastos: caja.gastos || 0,
-    saldo: (caja.apertura || 0) + (caja.ingresos || 0) - (caja.gastos || 0)
-  });
 });
 
 app.post('/caja/gasto', async (req, res) => {
-  let caja = await Caja.findOne({ activa: true });
+  try {
+    const caja = await Caja.findOne({ activa: true });
+    if (!caja) return res.json({ error: "Caja no abierta" });
 
-  if (!caja) return res.json({ error: "Caja no abierta" });
+    const monto  = Number(req.body.monto  || 0);
+    const motivo = req.body.motivo || "Sin motivo";
+    if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
 
-  let monto = Number(req.body.monto || 0);
-  let motivo = req.body.motivo || "Sin motivo";
-
-  caja.gastos += monto;
-
-  if (!caja.movimientos) caja.movimientos = [];
-
-  caja.movimientos.push({
-    tipo: "gasto",
-    monto,
-    motivo
-  });
-
-  await caja.save();
-
-  res.json({ ok: true });
+    caja.gastos += monto;
+    caja.movimientos.push({ tipo: "gasto", monto, motivo });
+    await caja.save();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al registrar gasto" }); }
 });
 
+// 🔥 Transferencia desde caja.html (manual) O desde index.html (venta)
+// En ventas ya se registra automáticamente en /ventas, pero este endpoint
+// queda disponible para transferencias manuales directas desde caja.html
 app.post('/caja/transferencia', async (req, res) => {
+  try {
+    const caja = await Caja.findOne({ activa: true });
+    if (!caja) return res.json({ error: "Caja no abierta" });
 
-  let caja = await Caja.findOne({ activa: true });
+    const monto = Number(req.body.monto || 0);
+    if (!monto || monto <= 0) return res.json({ error: "Monto inválido" });
 
-  if (!caja) return res.json({ error: "Caja no abierta" });
-
-  let monto = Number(req.body.monto || 0);
-
-  caja.ingresos += monto;
-
-  if (!caja.movimientos) caja.movimientos = [];
-
-  caja.movimientos.push({
-    tipo: "transferencia",
-    monto,
-    motivo: `Transferencia ${req.body.banco || ""}`,
-    banco: req.body.banco,
-    cuenta: req.body.cuenta,
-    comprobante: req.body.comprobante,
-    remitente: req.body.remitente
-  });
-
-  await caja.save();
-
-  res.json({ ok: true });
+    caja.ingresos += monto;
+    caja.movimientos.push({
+      tipo:        "transferencia",
+      monto,
+      motivo:      `Transferencia ${req.body.banco || ""}`,
+      banco:       req.body.banco       || "",
+      cuenta:      req.body.cuenta      || "",
+      comprobante: req.body.comprobante || "",
+      remitente:   req.body.remitente   || ""
+    });
+    await caja.save();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: "Error al registrar transferencia" }); }
 });
 
 // ================== CIERRE CAJA ==================
 app.post('/caja/cerrar', async (req, res) => {
-
-  let caja = await Caja.findOne({ activa: true });
-  if (!caja) return res.json({ error: "Caja no abierta" });
-
-  let real = Number(req.body.montoReal);
-  let dejar = Number(req.body.dejar || 0);
-
-  let esperado = caja.apertura + caja.ingresos - caja.gastos;
-  let diferencia = real - esperado;
-
-  caja.activa = false;
-  caja.cierre = real;
-  caja.horaCierre = new Date();
-  caja.dejado = dejar;
-
-  if (!caja.movimientos) caja.movimientos = [];
-
-  caja.movimientos.push({
-    tipo: "cierre",
-    monto: real,
-    motivo: `Cierre de caja | Dejado: $${dejar}`
-  });
-
-  await caja.save();
-
-  // 🔥 NUEVO: FILTRAR SOLO GASTOS
-  let gastosLista = caja.movimientos.filter(m => m.tipo === "gasto");
-
-  if (dejar > 0) {
-    await new Caja({
-      apertura: dejar,
-      ingresos: 0,
-      gastos: 0,
-      activa: true
-    }).save();
-  }
-
-  res.json({
-    apertura: caja.apertura,
-    ingresos: caja.ingresos,
-    gastos: caja.gastos,
-    esperado,
-    real,
-    diferencia,
-    dejar,
-    gastosLista // 👈 🔥 AQUÍ ESTÁ LA CLAVE
-  });
-});
-
-//=============================================
-
-
-function generarIA(productos, totalGeneral) {
-
-  let recomendaciones = [];
-
-  if (!productos || productos.length === 0) {
-    return {
-      recomendaciones: ["⚠️ No hay datos suficientes para análisis"]
-    };
-  }
-
-  let masVendidos = [...productos].sort((a,b)=>b.vendidos-a.vendidos);
-  let menosVendidos = [...productos].sort((a,b)=>a.vendidos-b.vendidos);
-  let masGanancia = [...productos].sort((a,b)=>b.ganancia-a.ganancia);
-  let menosGanancia = [...productos].sort((a,b)=>a.ganancia-b.ganancia);
-
-  if (totalGeneral > 1000) {
-    recomendaciones.push("📈 Negocio estable. Puedes escalar inversión.");
-  } else if (totalGeneral > 300) {
-    recomendaciones.push("⚠️ Ventas medias. Mejora marketing.");
-  } else {
-    recomendaciones.push("🚨 Ventas bajas. Urge promoción.");
-  }
-
-  if (masVendidos[0]) {
-    recomendaciones.push(`🔥 Aumenta stock de: ${masVendidos[0].nombre}`);
-  }
-
-  if (menosVendidos[0]) {
-    recomendaciones.push(`📉 Producto lento: ${menosVendidos[0].nombre}`);
-  }
-
-  if (masGanancia[0]) {
-    recomendaciones.push(`💰 Mayor ganancia: ${masGanados[0]?.nombre || masGanancia[0].nombre}`);
-  }
-
-  if (menosGanancia[0]) {
-    recomendaciones.push(`💸 Baja rentabilidad: ${menosGanancia[0].nombre}`);
-  }
-
-  return { recomendaciones };
-}
-//===========================================
-app.get('/analisis', async (req, res) => {
-
-  const ventas = await Venta.find();
-
-  let totalGeneral = 0;
-  let efectivo = 0;
-  let credito = 0;
-
-  let productos = {};
-  let porDia = {};
-  let porMes = {};
-
-  ventas.forEach(v => {
-
-    let total = Number(v.total || 0);
-    totalGeneral += total;
-
-    if (v.tipo === "efectivo") efectivo++;
-    if (v.tipo === "credito") credito++;
-
-    let fecha = new Date(v.fecha);
-    let dia = fecha.toISOString().split("T")[0];
-    let mes = fecha.toISOString().slice(0,7);
-
-    porDia[dia] = (porDia[dia] || 0) + total;
-    porMes[mes] = (porMes[mes] || 0) + total;
-
-    if (v.productos && Array.isArray(v.productos)) {
-
-      v.productos.forEach(p => {
-
-        let nombre = p.nombre;
-        let cantidad = Number(p.cantidad || 1);
-        let precio = Number(p.precio || 0);
-        let costo = Number(p.costo || 0);
-
-        let ganancia = (precio - costo) * cantidad;
-
-        if (!productos[nombre]) {
-          productos[nombre] = {
-            nombre,
-            vendidos: 0,
-            ganancia: 0
-          };
-        }
-
-        productos[nombre].vendidos += cantidad;
-        productos[nombre].ganancia += ganancia;
-      });
-    }
-  });
-
-  let lista = Object.values(productos);
-
-  let masVendidos = [...lista].sort((a,b)=>b.vendidos-a.vendidos).slice(0,5);
-  let menosVendidos = [...lista].sort((a,b)=>a.vendidos-b.vendidos).slice(0,5);
-  let masGanancia = [...lista].sort((a,b)=>b.ganancia-a.ganancia).slice(0,5);
-  let menosGanancia = [...lista].sort((a,b)=>a.ganancia-b.ganancia).slice(0,5);
-
-  let recomendaciones = [];
-
-  if (masGanancia.length) {
-    recomendaciones.push(`🔥 Vende más: ${masGanancia[0].nombre}`);
-  }
-
-  if (menosVendidos.length) {
-    recomendaciones.push(`📦 Mejora marketing: ${menosVendidos[0].nombre}`);
-  }
-
-  if (totalGeneral < 1000) {
-    recomendaciones.push("🚨 Ventas bajas, haz promociones");
-  } else {
-    recomendaciones.push("📊 Negocio estable");
-  }
-
-  res.json({
-    ventas,            // 🔥 ESTO ES LO QUE TE FALTABA
-    totalGeneral,
-    efectivo,
-    credito,
-    porDia,
-    porMes,
-
-    masVendidos,
-    menosVendidos,
-    masGanancia,
-    menosGanancia,
-
-    ia: {
-      recomendaciones
-    }
-  });
-});
-
-
-app.delete('/ventas/dia', async (req, res) => {
-
   try {
+    const caja = await Caja.findOne({ activa: true });
+    if (!caja) return res.json({ error: "Caja no abierta" });
 
-    const { fecha } = req.body;
+    const real  = Number(req.body.montoReal);
+    const dejar = Number(req.body.dejar || 0);
 
-    if (!fecha) {
-      return res.status(400).json({ error: "Falta fecha" });
-    }
+    const esperado   = caja.apertura + caja.ingresos - caja.gastos;
+    const diferencia = real - esperado;
 
-    const inicio = new Date(fecha + "T00:00:00.000Z");
-    const fin = new Date(fecha + "T23:59:59.999Z");
+    let transferencias = 0;
+    const gastosLista       = [];
+    const transferenciasList = [];
 
-    const resultado = await Venta.deleteMany({
-      fecha: { $gte: inicio, $lte: fin }
+    (caja.movimientos || []).forEach(m => {
+      if (m.tipo === "gasto")         gastosLista.push(m);
+      if (m.tipo === "transferencia") { transferenciasList.push(m); transferencias += m.monto; }
     });
+
+    caja.activa     = false;
+    caja.cierre     = real;
+    caja.horaCierre = new Date();
+    caja.dejado     = dejar;
+    caja.movimientos.push({
+      tipo: "cierre", monto: real,
+      motivo: `Cierre de caja | Dejado: $${dejar}`
+    });
+    await caja.save();
+
+    // Abrir nueva caja con el monto dejado
+    if (dejar > 0) {
+      await new Caja({
+        apertura:     dejar,
+        ingresos:     0,
+        gastos:       0,
+        activa:       true,
+        horaApertura: new Date(),
+        movimientos: [{ tipo: "inicio", monto: dejar, motivo: "Apertura automática" }]
+      }).save();
+    }
 
     res.json({
-      ok: true,
-      deleted: resultado.deletedCount
+      apertura:         caja.apertura,
+      ingresos:         caja.ingresos,
+      transferencias,
+      gastos:           caja.gastos,
+      esperado,
+      real,
+      diferencia,
+      dejar,
+      fechaApertura:    caja.horaApertura,
+      fechaCierre:      caja.horaCierre,
+      gastosLista,
+      transferenciasList
     });
-
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Error al borrar día" });
+    console.error(err);
+    res.status(500).json({ error: "Error al cerrar caja" });
   }
 });
+
+// 🔥 NUEVO: Historial de cierres para caja.html
+app.get('/caja/historial', async (req, res) => {
+  try {
+    const cajas = await Caja.find({ activa: false }).sort({ horaCierre: -1 }).limit(50);
+
+    const historial = cajas.map(c => {
+      let transferencias = 0;
+      const gastosLista       = [];
+      const transferenciasList = [];
+
+      (c.movimientos || []).forEach(m => {
+        if (m.tipo === "gasto")         gastosLista.push(m);
+        if (m.tipo === "transferencia") { transferenciasList.push(m); transferencias += m.monto; }
+      });
+
+      return {
+        fechaApertura:    c.horaApertura,
+        fechaCierre:      c.horaCierre,
+        apertura:         c.apertura,
+        ingresos:         c.ingresos,
+        transferencias,
+        gastos:           c.gastos,
+        real:             c.cierre,
+        diferencia:       c.cierre - (c.apertura + c.ingresos - c.gastos),
+        dejar:            c.dejado || 0,
+        gastosLista,
+        transferenciasList
+      };
+    });
+
+    res.json(historial);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener historial" });
+  }
+});
+
+// ================== ANÁLISIS / DASHBOARD ==================
+app.get('/analisis', async (req, res) => {
+  try {
+    const ventas = await Venta.find();
+
+    let totalGeneral = 0;
+    let efectivo     = 0;
+    let credito      = 0;
+    let transferencia = 0;
+
+    const productos = {};
+    const porDia    = {};
+    const porMes    = {};
+
+    ventas.forEach(v => {
+      const total = Number(v.total || 0);
+      totalGeneral += total;
+
+      if (v.tipo === "efectivo")      efectivo++;
+      if (v.tipo === "credito")       credito++;
+      if (v.tipo === "transferencia") transferencia++;
+
+      const fecha = new Date(v.fecha);
+      const dia   = fecha.toISOString().split("T")[0];
+      const mes   = fecha.toISOString().slice(0, 7);
+
+      porDia[dia] = (porDia[dia] || 0) + total;
+      porMes[mes] = (porMes[mes] || 0) + total;
+
+      if (Array.isArray(v.productos)) {
+        v.productos.forEach(p => {
+          const nombre   = p.nombre  || "Sin nombre";
+          const cantidad = Number(p.cantidad || 1);
+          const precio   = Number(p.precio   || 0);
+          const costo    = Number(p.costo    || 0);
+          const ganancia = (precio - costo) * cantidad;
+
+          if (!productos[nombre]) {
+            productos[nombre] = { nombre, vendidos: 0, ganancia: 0 };
+          }
+          productos[nombre].vendidos  += cantidad;
+          productos[nombre].ganancia  += ganancia;
+        });
+      }
+    });
+
+    const lista = Object.values(productos);
+
+    const masVendidos   = [...lista].sort((a,b) => b.vendidos  - a.vendidos ).slice(0, 5);
+    const menosVendidos = [...lista].sort((a,b) => a.vendidos  - b.vendidos ).slice(0, 5);
+    const masGanancia   = [...lista].sort((a,b) => b.ganancia  - a.ganancia ).slice(0, 5);
+    const menosGanancia = [...lista].sort((a,b) => a.ganancia  - b.ganancia ).slice(0, 5);
+
+    // Clientes únicos
+    const clientesUnicos = new Set(ventas.map(v => v.cedula || v.cliente)).size;
+
+    res.json({
+      ventas,
+      totalGeneral,
+      efectivo,
+      credito,
+      transferencia,    // 🔥 corregido (antes faltaba)
+      clientes: clientesUnicos,
+      porDia,
+      porMes,
+      masVendidos,
+      menosVendidos,
+      masGanancia,
+      menosGanancia
+    });
+  } catch (err) {
+    console.error("Error /analisis:", err);
+    res.status(500).json({ error: "Error al obtener análisis" });
+  }
+});
+
 // ================== SERVER ==================
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log("🚀 http://localhost:" + PORT);
 });
