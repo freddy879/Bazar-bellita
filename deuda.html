@@ -1,87 +1,39 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
 <head>
   <title>Deudas - Bazar Bellita</title>
-
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI';
-      display: flex;
-      background: #f5f6fa;
-    }
-
-    .sidebar {
-      width: 220px;
-      background: #1e272e;
-      color: white;
-      height: 100vh;
-      padding: 20px;
-    }
-
-    .sidebar a {
-      display: block;
-      padding: 10px;
-      color: white;
-      text-decoration: none;
-      border-radius: 8px;
-      margin-top: 10px;
-    }
-
-    .sidebar a:hover {
-      background: #485460;
-    }
-
+    body { margin: 0; font-family: 'Segoe UI'; display: flex; background: #f5f6fa; }
+    .sidebar { width: 220px; background: #1e272e; color: white; height: 100vh; padding: 20px; }
+    .sidebar a { display: block; padding: 10px; color: white; text-decoration: none; border-radius: 8px; margin-top: 10px; }
+    .sidebar a:hover { background: #485460; }
     .main { flex: 1; }
-
-    .header {
-      background: #ff3f34;
-      color: white;
-      padding: 15px;
-      font-size: 20px;
-    }
-
+    .header { background: #ff3f34; color: white; padding: 15px; font-size: 20px; }
     .contenido { padding: 20px; }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
-    }
-
-    input {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      padding: 10px;
-      border: none;
-      background: #ff3f34;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
+    .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); }
+    input, select { padding: 10px; margin: 5px; border-radius: 8px; border: 1px solid #ccc; }
+    button { padding: 10px; border: none; background: #ff3f34; color: white; border-radius: 8px; cursor: pointer; }
     button:hover { background: #e84118; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: center;
-    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
+    .modal-overlay.activo { display: flex; }
+    .modal { background: white; border-radius: 16px; padding: 30px; width: 380px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .modal h3 { margin-top: 0; color: #1e272e; font-size: 18px; }
+    .modal label { display: block; margin: 10px 0 4px; font-weight: 600; color: #444; font-size: 14px; }
+    .modal input, .modal select { width: 100%; box-sizing: border-box; margin: 0 0 8px 0; padding: 10px 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
+    .tipo-pago { display: flex; gap: 10px; margin-bottom: 14px; }
+    .tipo-btn { flex: 1; padding: 12px; border: 2px solid #ddd; background: #f5f6fa; color: #555; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.2s; }
+    .tipo-btn.activo { border-color: #ff3f34; background: #fff0ef; color: #ff3f34; }
+    .banco-info { background: #f0f4ff; border-left: 4px solid #3c6fe4; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; color: #333; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-cancelar { flex: 1; background: #ccc; color: #333; }
+    .btn-cancelar:hover { background: #aaa; }
+    .btn-confirmar { flex: 2; background: #ff3f34; }
+    #seccion-transferencia { display: none; }
+    .badge-acum { background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
   </style>
 </head>
-
 <body>
 
 <div class="sidebar">
@@ -95,36 +47,30 @@
 </div>
 
 <div class="main">
-
   <div class="header">💸 Deudas - Bazar Bellita</div>
-
   <div class="contenido">
 
     <div class="card">
-     <input id="buscar" placeholder="Buscar por nombre o cédula" onkeyup="buscarCliente()">
-     <button onclick="buscarCliente()">Buscar</button>
-     <button onclick="cargar()">♻ Recargar</button>
+      <input id="buscar" placeholder="Buscar por nombre o cédula" onkeyup="buscarCliente()">
+      <button onclick="buscarCliente()">Buscar</button>
+      <button onclick="cargar()">♻ Recargar</button>
     </div>
 
     <div class="card">
-      <h3>➕ Nueva Deuda</h3>
-
+      <h3>➕ Nueva Deuda / Agregar Producto</h3>
+      <small style="color:#666;">Si el cliente ya tiene deuda, se <b>sumará</b> el producto a la deuda existente.</small><br><br>
       <input id="nombre" placeholder="Nombre">
       <input id="apellido" placeholder="Apellido"><br>
-
       <input id="cedula" placeholder="Cédula">
       <input id="celular" placeholder="Celular">
       <input id="direccion" placeholder="Producto"><br>
-
       <input id="monto" placeholder="Monto">
       <input id="meses" placeholder="Meses"><br>
-
       <button onclick="agregar()">Guardar</button>
     </div>
 
     <div class="card">
       <h3>📋 Deudas</h3>
-
       <table>
         <thead>
           <tr>
@@ -138,21 +84,60 @@
             <th>Acción</th>
           </tr>
         </thead>
-
         <tbody id="tabla"></tbody>
       </table>
     </div>
 
   </div>
+</div>
 
+<!-- ====== MODAL ABONAR ====== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>💰 Registrar Abono</h3>
+
+    <label>Monto del abono</label>
+    <input type="number" id="modal-monto" placeholder="Ej: 25.00">
+
+    <label>Método de pago</label>
+    <div class="tipo-pago">
+      <button class="tipo-btn activo" id="btn-efectivo" onclick="seleccionarTipo('efectivo')">💵 Efectivo</button>
+      <button class="tipo-btn" id="btn-transferencia" onclick="seleccionarTipo('transferencia')">🏦 Transferencia</button>
+    </div>
+
+    <div id="seccion-transferencia">
+      <label>Banco</label>
+      <select id="modal-banco" onchange="actualizarInfoBanco()">
+        <option value="">- Selecciona banco -</option>
+        <option value="Banco Guayaquil">Banco Guayaquil</option>
+        <option value="Banco Pichincha">Banco Pichincha</option>
+      </select>
+      <div id="info-banco" class="banco-info" style="display:none;"></div>
+      <label>Nombre del remitente</label>
+      <input id="modal-remitente" placeholder="Nombre de quien transfiere">
+      <label>Número de comprobante</label>
+      <input id="modal-comprobante" placeholder="Número de comprobante">
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-confirmar" onclick="confirmarAbono()">✅ Confirmar</button>
+    </div>
+  </div>
 </div>
 
 <script>
 
 const API = "https://bazar-bellita.onrender.com";
 
-
 let deudas = [];
+let deudaIdActual = null;
+let tipoPagoActual = "efectivo";
+
+const BANCOS = {
+  "Banco Guayaquil": { tipo: "Cuenta de Ahorros", numero: "0000000000" },
+  "Banco Pichincha": { tipo: "Cuenta de Ahorros", numero: "2208028078" }
+};
 
 // ================= CARGAR =================
 async function cargar() {
@@ -161,287 +146,275 @@ async function cargar() {
   mostrar(deudas);
 }
 
-//===============Buscar cliente ============
-function buscarCliente(){
-
-  let texto = document.getElementById("buscar").value
-    .toLowerCase()
-    .trim();
-
-  if(!texto){
-    mostrar(deudas);
-    return;
-  }
-
+// ================ BUSCAR ==================
+function buscarCliente() {
+  let texto = document.getElementById("buscar").value.toLowerCase().trim();
+  if (!texto) { mostrar(deudas); return; }
   let filtradas = deudas.filter(d => {
-
-    // 🔥 asegurar que siempre sea texto limpio
     let nombre = String(d.cliente || "").toLowerCase().trim();
     let cedula = String(d.cedula || "").toLowerCase().trim();
     let celular = String(d.celular || "").toLowerCase().trim();
-
-    return (
-      nombre.includes(texto) ||
-      cedula.includes(texto) ||
-      celular.includes(texto)
-    );
+    return nombre.includes(texto) || cedula.includes(texto) || celular.includes(texto);
   });
-
   mostrar(filtradas);
 }
 
 // ================= AGREGAR =================
-async function agregar(){
-
-  let nombreV = document.getElementById("nombre").value;
-  let apellidoV = document.getElementById("apellido").value;
-  let cedulaV = document.getElementById("cedula").value;
-  let celularV = document.getElementById("celular").value;
-
+// Si el cliente ya tiene una deuda activa (por cédula o nombre), se acumula el producto.
+async function agregar() {
+  let nombreV = document.getElementById("nombre").value.trim();
+  let apellidoV = document.getElementById("apellido").value.trim();
+  let cedulaV = document.getElementById("cedula").value.trim();
+  let celularV = document.getElementById("celular").value.trim();
   let totalV = parseFloat(document.getElementById("monto").value);
-  if(!totalV) return alert("Monto inválido");
+  let productosTexto = document.getElementById("direccion").value.trim();
 
-  let productosTexto = document.getElementById("direccion").value;
+  if (!totalV || isNaN(totalV)) return alert("Monto inválido");
+  if (!productosTexto) return alert("Ingresa el nombre del producto");
 
-  let productosArray = [];
+  let clienteFinal = (nombreV + " " + apellidoV).trim();
+  let nuevoProducto = { nombre: productosTexto, cantidad: 1, precio: totalV };
 
-  if(productosTexto){
-    productosArray.push({
-      nombre: productosTexto,
-      cantidad: 1,
-      precio: totalV
-    });
+  // Buscar deuda existente por cédula (prioridad) o nombre
+  let deudaExistente = null;
+  if (cedulaV && cedulaV !== "-") {
+    deudaExistente = deudas.find(d =>
+      d.cedula && d.cedula !== "-" &&
+      d.cedula.trim() === cedulaV &&
+      (d.total - (d.pagado || 0)) > 0
+    );
+  }
+  if (!deudaExistente && clienteFinal) {
+    deudaExistente = deudas.find(d =>
+      d.cliente && d.cliente.trim().toLowerCase() === clienteFinal.toLowerCase() &&
+      (d.total - (d.pagado || 0)) > 0
+    );
   }
 
-  // 🔥 AQUÍ VA LO NUEVO
-  let clienteFinal = (nombreV + " " + apellidoV).trim();
+  if (deudaExistente) {
+    // ACUMULAR: sumar producto y monto a la deuda existente
+    let productosActualizados = [...(deudaExistente.productos || []), nuevoProducto];
+    let nuevoTotal = deudaExistente.total + totalV;
 
-  await fetch(API + '/deudas', {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      cliente: clienteFinal,
-      cedula: cedulaV || "-",
-      celular: celularV || "",
-      direccion: "",
-      total: totalV,
-      productos: productosArray,
-      pagos: [],
-      pagado: 0
-    })
-  });
+    let confirmar = confirm(
+      `${deudaExistente.cliente} ya tiene una deuda de $${(deudaExistente.total - (deudaExistente.pagado||0)).toFixed(2)} pendiente.\n\n` +
+      `¿Deseas agregar "${productosTexto}" ($${totalV}) a su deuda existente?\n\n` +
+      `Nuevo total: $${nuevoTotal.toFixed(2)}`
+    );
+    if (!confirmar) return;
+
+    const res = await fetch(API + '/deudas/' + deudaExistente._id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cliente: deudaExistente.cliente,
+        cedula: deudaExistente.cedula,
+        celular: deudaExistente.celular,
+        total: nuevoTotal,
+        productos: productosActualizados
+      })
+    });
+
+    const texto = await res.text();
+    let data;
+    try { data = JSON.parse(texto); } catch { alert("Error del servidor al acumular deuda"); return; }
+    if (!res.ok) { alert(data.error || "Error al actualizar deuda"); return; }
+    alert(`✅ Producto agregado a la deuda de ${deudaExistente.cliente}.\nNuevo total: $${nuevoTotal.toFixed(2)}`);
+
+  } else {
+    // NUEVA DEUDA
+    await fetch(API + '/deudas', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cliente: clienteFinal,
+        cedula: cedulaV || "-",
+        celular: celularV || "",
+        direccion: "",
+        total: totalV,
+        productos: [nuevoProducto],
+        pagos: [],
+        pagado: 0
+      })
+    });
+  }
 
   limpiar();
   cargar();
 }
 
-//=========EDITAR====
-async function editar(id){
-
+// ================= EDITAR =================
+async function editar(id) {
   try {
-
     let d = deudas.find(x => x._id === id);
-
-    if(!d){
-      alert("No encontrada");
-      return;
-    }
-
+    if (!d) { alert("No encontrada"); return; }
     let clienteNuevo = prompt("Nombre:", d.cliente);
-    if(clienteNuevo === null) return;
-
+    if (clienteNuevo === null) return;
     let cedulaNueva = prompt("Cédula:", d.cedula || "");
-    if(cedulaNueva === null) return;
-
+    if (cedulaNueva === null) return;
     let celularNuevo = prompt("Celular:", d.celular || "");
-    if(celularNuevo === null) return;
-
+    if (celularNuevo === null) return;
     let totalNuevo = prompt("Monto:", d.total);
-    if(totalNuevo === null) return;
-
+    if (totalNuevo === null) return;
     totalNuevo = Number(totalNuevo);
-
-    if(isNaN(totalNuevo)){
-      alert("Monto inválido");
-      return;
-    }
-
+    if (isNaN(totalNuevo)) { alert("Monto inválido"); return; }
     const res = await fetch(API + '/deudas/' + id, {
       method: "PUT",
-      headers: {
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        cliente: clienteNuevo,
-        cedula: cedulaNueva,
-        celular: celularNuevo,
-        total: totalNuevo
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cliente: clienteNuevo, cedula: cedulaNueva, celular: celularNuevo, total: totalNuevo })
     });
-
-    console.log("STATUS:", res.status);
-
     const texto = await res.text();
-
-    console.log("RESPUESTA:", texto);
-
     let data;
-
-    try {
-
-      data = JSON.parse(texto);
-
-    } catch {
-
-      alert("El servidor devolvió HTML y no JSON");
-      return;
-
-    }
-
-    if(!res.ok){
-
-      alert(data.error || "Error al editar");
-      return;
-
-    }
-
+    try { data = JSON.parse(texto); } catch { alert("El servidor devolvió HTML y no JSON"); return; }
+    if (!res.ok) { alert(data.error || "Error al editar"); return; }
     alert(data.mensaje || "Editado correctamente");
-
     await cargar();
-
-  } catch(err){
-
-    console.log(err);
-
-    alert("Error: " + err.message);
-
-  }
+  } catch (err) { console.log(err); alert("Error: " + err.message); }
 }
+
 // ================= MOSTRAR =================
-function mostrar(lista){
-
+function mostrar(lista) {
   let tabla = document.getElementById("tabla");
-
   let html = "";
-
   lista.forEach(d => {
-
     let pagado = d.pagado || 0;
     let restante = d.total - pagado;
     let estado = restante <= 0 ? "Pagado ✅" : "Pendiente";
-
-    let productos = (d.productos && d.productos.length)
-      ? d.productos.map(p =>
-          `${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}`
-        ).join("<br>")
+    let cantProds = (d.productos && d.productos.length) ? d.productos.length : 0;
+    let productos = cantProds
+      ? d.productos.map(p => `${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}`).join("<br>")
       : "Sin productos";
-
     let pagos = (d.pagos && d.pagos.length)
-      ? d.pagos.map(p =>
-          `$${p.monto} - ${new Date(p.fecha).toLocaleString()}`
-        ).join("<br>")
+      ? d.pagos.map(p => {
+          let metodo = p.tipoPago === "transferencia"
+            ? `🏦 ${p.banco || ""} | Comprobante: ${p.comprobante || "-"} | Remitente: ${p.remitente || "-"}`
+            : "💵 Efectivo";
+          return `$${p.monto} — ${new Date(p.fecha).toLocaleString()} — ${metodo}`;
+        }).join("<br>")
       : "Sin pagos";
-
-    // 🔥 mensaje whatsapp
-    let mensaje = encodeURIComponent(
-`Hola ${d.cliente}, le saluda Locales Bellita.
-
-Le recordamos que mantiene una deuda pendiente de $${restante}.
-
-Gracias por su atención.`
-    );
-
-    // 🔥 convertir 09 a 593
+    let mensaje = encodeURIComponent(`Hola ${d.cliente}, le saluda Locales Bellita.\n\nLe recordamos que mantiene una deuda pendiente de $${restante.toFixed(2)}.\n\nGracias por su atención.`);
     let numero = (d.celular || "").replace(/^0/, "593");
-
+    let badgeProds = cantProds > 1 ? `<br><span class="badge-acum">📦 ${cantProds} productos</span>` : "";
     html += `
       <tr>
-        <td>${d.cliente}</td>
-
+        <td>${d.cliente}${badgeProds}</td>
         <td>${d.cedula || "-"}</td>
-
         <td>
           ${d.celular || "-"}
-
-          <a 
-            href="https://wa.me/${numero}?text=${mensaje}" 
-            target="_blank"
-            style="text-decoration:none;"
-          >
-            📱
-          </a>
+          <a href="https://wa.me/${numero}?text=${mensaje}" target="_blank" style="text-decoration:none;">📱</a>
         </td>
-
-        <td>$${d.total}</td>
-        <td>$${pagado}</td>
-        <td>$${restante}</td>
+        <td>$${d.total.toFixed(2)}</td>
+        <td>$${pagado.toFixed(2)}</td>
+        <td>$${restante.toFixed(2)}</td>
         <td>${estado}</td>
-
         <td>
-         <input id="abono${d._id}" style="width:80px">
-         <button onclick="abonar('${d._id}')">💰</button>
-         <button onclick="editar('${d._id}')">✏️</button>
-         <button onclick="toggleDetalle('${d._id}')">📄</button>
-         <button onclick="eliminar('${d._id}')">🗑</button>
+          <button onclick="abrirModal('${d._id}')">💰 Abonar</button>
+          <button onclick="editar('${d._id}')">✏️</button>
+          <button onclick="toggleDetalle('${d._id}')">📄</button>
+          <button onclick="eliminar('${d._id}')">🗑</button>
         </td>
       </tr>
-
       <tr id="detalle-${d._id}" style="display:none; background:#f9f9f9;">
         <td colspan="8" style="text-align:left;">
-
-          <b>📦 Productos:</b><br>
-          ${productos}<br><br>
-
-          <b>💰 Pagos:</b><br>
-          ${pagos}
-
+          <b>📦 Productos (${cantProds}):</b><br>${productos}<br><br>
+          <b>💰 Pagos:</b><br>${pagos}
         </td>
       </tr>
     `;
   });
-
   tabla.innerHTML = html;
 }
-//=============ABRIR DETALLE =====
-function toggleDetalle(id){
+
+// ================ TOGGLE DETALLE ==================
+function toggleDetalle(id) {
   let fila = document.getElementById("detalle-" + id);
+  if (!fila) return;
+  fila.style.display = fila.style.display === "none" ? "table-row" : "none";
+}
 
-  if(!fila) return;
+// ================= MODAL ABONAR =================
+function abrirModal(id) {
+  deudaIdActual = id;
+  tipoPagoActual = "efectivo";
+  document.getElementById("modal-monto").value = "";
+  document.getElementById("modal-banco").value = "";
+  document.getElementById("modal-comprobante").value = "";
+  document.getElementById("modal-remitente").value = "";
+  document.getElementById("seccion-transferencia").style.display = "none";
+  document.getElementById("info-banco").style.display = "none";
+  document.getElementById("btn-efectivo").classList.add("activo");
+  document.getElementById("btn-transferencia").classList.remove("activo");
+  document.getElementById("modalOverlay").classList.add("activo");
+}
 
-  if(fila.style.display === "none"){
-    fila.style.display = "table-row";
+function cerrarModal() {
+  document.getElementById("modalOverlay").classList.remove("activo");
+  deudaIdActual = null;
+}
+
+function seleccionarTipo(tipo) {
+  tipoPagoActual = tipo;
+  document.getElementById("btn-efectivo").classList.toggle("activo", tipo === "efectivo");
+  document.getElementById("btn-transferencia").classList.toggle("activo", tipo === "transferencia");
+  document.getElementById("seccion-transferencia").style.display = tipo === "transferencia" ? "block" : "none";
+  if (tipo === "efectivo") document.getElementById("info-banco").style.display = "none";
+}
+
+function actualizarInfoBanco() {
+  let banco = document.getElementById("modal-banco").value;
+  let infoDiv = document.getElementById("info-banco");
+  if (banco && BANCOS[banco]) {
+    let b = BANCOS[banco];
+    infoDiv.innerHTML = `<b>${banco}</b><br>${b.tipo}<br><b>${b.numero}</b>`;
+    infoDiv.style.display = "block";
   } else {
-    fila.style.display = "none";
+    infoDiv.style.display = "none";
   }
 }
 
-// ================= ABONAR =================
-// ================= ABONAR =================
-async function abonar(id){
+// ================= CONFIRMAR ABONO =================
+async function confirmarAbono() {
+  let monto = Number(document.getElementById("modal-monto").value);
+  if (!monto || monto <= 0) return alert("Monto inválido");
 
-  let input = document.getElementById(`abono${id}`);
-  let monto = Number(input.value);
+  let banco = "";
+  let comprobante = "";
+  let remitente = "";
 
-  if(!monto || monto <= 0) return alert("Monto inválido");
+  if (tipoPagoActual === "transferencia") {
+    banco = document.getElementById("modal-banco").value;
+    comprobante = document.getElementById("modal-comprobante").value.trim();
+    remitente = document.getElementById("modal-remitente").value.trim();
+    if (!banco) return alert("Selecciona un banco");
+    if (!comprobante) return alert("Ingresa el número de comprobante");
+  }
+
+  // Guardamos el cliente antes del fetch (lo necesitamos después)
+  let deudaActual = deudas.find(x => x._id === deudaIdActual);
 
   try {
-
     const res = await fetch(API + '/deudas/pagar', {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ id, monto })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: deudaIdActual, monto })
     });
 
     const data = await res.json();
+    if (data.error) return alert(data.error);
 
-    if(data.error) return alert(data.error);
+    // ✅ FIX: Registrar transferencia en caja con la variable correcta
+    if (tipoPagoActual === "transferencia") {
+      await registrarTransferenciaEnCaja({
+        monto,
+        banco,
+        comprobante,
+        remitente,
+        descripcion: `Abono deuda — ${deudaActual ? deudaActual.cliente : "Cliente"}`
+      });
+    }
 
-    input.value = "";
-
-    // 🔥 usar respuesta del backend directamente
-    abrirRecibo(data, monto);
-
-    // actualizar tabla
+    cerrarModal();
+    abrirRecibo(data, monto, tipoPagoActual, banco, comprobante, remitente);
     cargar();
 
   } catch (err) {
@@ -450,129 +423,115 @@ async function abonar(id){
   }
 }
 
+// ================= REGISTRAR TRANSFERENCIA EN CAJA =================
+// ✅ FIX: variable correcta, campo "motivo" corregido, manejo de errores mejorado
+async function registrarTransferenciaEnCaja({ monto, banco, comprobante, remitente, descripcion }) {
+  try {
+    const res = await fetch(API + '/caja/transferencia', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        monto,
+        banco,
+        cuenta: BANCOS[banco] ? BANCOS[banco].numero : "",
+        comprobante,
+        remitente,
+        motivo: descripcion
+      })
+    });
+    const texto = await res.text();
+    try {
+      const data = JSON.parse(texto);
+      if (!res.ok) console.warn("Caja respuesta:", data);
+    } catch {
+      console.warn("Caja devolvió respuesta no-JSON:", texto.substring(0, 200));
+    }
+  } catch (err) {
+    console.log("Error al registrar en caja:", err);
+  }
+}
 
 // ================= RECIBO =================
-function abrirRecibo(d, monto){
-
-  let win = window.open("", "", "width=300,height=600");
+function abrirRecibo(d, monto, tipoPago, banco, comprobante, remitente) {
+  let win = window.open("", "", "width=300,height=700");
 
   let productos = (d.productos && d.productos.length)
-    ? d.productos.map(p =>
-        `${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}<br>`
-      ).join("")
+    ? d.productos.map(p => `${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}<br>`).join("")
     : "Sin productos registrados<br>";
 
   let pagos = (d.pagos && d.pagos.length)
-    ? d.pagos.map(p =>
-        `$${p.monto} - ${new Date(p.fecha).toLocaleString()}<br>`
-      ).join("")
+    ? d.pagos.map(p => {
+        let metodo = p.tipoPago === "transferencia"
+          ? ` | 🏦 ${p.banco || ""}`
+          : " | 💵 Efectivo";
+        return `$${p.monto} - ${new Date(p.fecha).toLocaleString()}${metodo}<br>`;
+      }).join("")
     : "Sin pagos<br>";
 
   let pagado = d.pagado || 0;
   let total = d.total || 0;
   let restante = d.restante ?? (total - pagado);
 
+  let infoTransferencia = tipoPago === "transferencia"
+    ? `<div class="line"></div>
+       🏦 Banco: ${banco}<br>
+       👤 Remitente: ${remitente || "-"}<br>
+       🧾 Comprobante: ${comprobante}<br>`
+    : "";
+
   win.document.write(`
   <html>
   <head>
     <style>
-      body{
-        font-family: monospace;
-        width: 280px;
-        margin:auto;
-        padding:10px;
-      }
-      h2{text-align:center;}
-      .line{border-top:1px dashed #000; margin:8px 0;}
+      body { font-family: monospace; width: 280px; margin: auto; padding: 10px; }
+      h2 { text-align: center; }
+      .line { border-top: 1px dashed #000; margin: 8px 0; }
     </style>
   </head>
-
   <body onload="window.print()">
-
     <h2>🧾 DETALLE DEUDA</h2>
-
     <div class="line"></div>
-
     Cliente: ${d.cliente || "-"}<br>
     Cédula: ${d.cedula || "-"}<br>
     Celular: ${d.celular || "-"}<br>
-
     <div class="line"></div>
-
-    📦 Productos<br>
-    ${productos}
-
+    📦 Productos<br>${productos}
     <div class="line"></div>
-
-    💰 Pagos<br>
-    ${pagos}
-
+    💰 Pagos<br>${pagos}
     <div class="line"></div>
-
-    💵 Abono: $${monto}<br><br>
-
-    Total: $${total}<br>
-    Pagado: $${pagado}<br>
-    Restante: $${restante}
-
+    💵 Método: ${tipoPago === "efectivo" ? "Efectivo" : "Transferencia"}<br>
+    ${infoTransferencia}
+    <div class="line"></div>
+    💵 Abono: $${monto.toFixed(2)}<br><br>
+    Total: $${total.toFixed(2)}<br>
+    Pagado: $${pagado.toFixed(2)}<br>
+    Restante: $${restante.toFixed(2)}
   </body>
   </html>
   `);
-
   win.document.close();
-}
-// ================= VER =================
-function ver(id){
-
-  let d = deudas.find(x => x._id === id);
-
-  let w = window.open("", "", "width=400,height=600");
-
-  w.document.write(`
-    🧾 DETALLE DEUDA<br><br>
-    Cliente: ${d.cliente}<br>
-    Cédula: ${d.cedula}<br>
-    Celular: ${d.celular}<br><br>
-    Total: $${d.total}<br>
-    Pagado: $${d.pagado}<br>
-    Restante: $${d.total - d.pagado}
-  `);
-
-  w.document.close();
 }
 
 // ================= LIMPIAR =================
-function limpiar(){
-  document.getElementById("nombre").value="";
-  document.getElementById("apellido").value="";
-  document.getElementById("cedula").value="";
-  document.getElementById("celular").value="";
-  document.getElementById("direccion").value="";
-  document.getElementById("monto").value="";
+function limpiar() {
+  document.getElementById("nombre").value = "";
+  document.getElementById("apellido").value = "";
+  document.getElementById("cedula").value = "";
+  document.getElementById("celular").value = "";
+  document.getElementById("direccion").value = "";
+  document.getElementById("monto").value = "";
 }
 
-//=================ELIMINAR================
-async function eliminar(id){
-
-  if(!confirm("¿Seguro que quieres eliminar esta deuda?")) return;
-
+// ================= ELIMINAR =================
+async function eliminar(id) {
+  if (!confirm("¿Seguro que quieres eliminar esta deuda?")) return;
   try {
-
-    await fetch(API + '/deudas/' + id, {
-      method: "DELETE"
-    });
-
-    cargar(); // recarga la tabla
-
-  } catch (err) {
-    console.log(err);
-    alert("Error al eliminar deuda");
-  }
+    await fetch(API + '/deudas/' + id, { method: "DELETE" });
+    cargar();
+  } catch (err) { console.log(err); alert("Error al eliminar deuda"); }
 }
-
 
 window.onload = cargar;
 </script>
-
 </body>
 </html>
