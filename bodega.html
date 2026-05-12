@@ -1,88 +1,92 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <title>Bodega - Bazar Bellita</title>
-
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI';
-      display: flex;
-      background: #f5f6fa;
-    }
-
-    .sidebar {
-      width: 220px;
-      background: #1e272e;
-      color: white;
-      height: 100vh;
-      padding: 20px;
-    }
-
-    .sidebar a {
-      display: block;
-      color: white;
-      padding: 10px;
-      text-decoration: none;
-      margin-top: 10px;
-      border-radius: 6px;
-    }
-
-    .sidebar a:hover {
-      background: #485460;
-    }
-
+    body { margin: 0; font-family: 'Segoe UI'; display: flex; background: #f5f6fa; }
+    .sidebar { width: 220px; background: #1e272e; color: white; height: 100vh; padding: 20px; }
+    .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; margin-top: 10px; border-radius: 6px; }
+    .sidebar a:hover { background: #485460; }
     .main { flex: 1; }
-
-    .header {
-      background: #ff3f34;
-      color: white;
-      padding: 15px;
-      font-size: 20px;
-    }
-
+    .header { background: #ff3f34; color: white; padding: 15px; font-size: 20px; }
     .contenido { padding: 20px; }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
-    }
-
-    input {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      padding: 10px;
-      border: none;
-      background: #ff3f34;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
+    .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); }
+    input { padding: 10px; margin: 5px; border-radius: 8px; border: 1px solid #ccc; }
+    button { padding: 10px; border: none; background: #ff3f34; color: white; border-radius: 8px; cursor: pointer; }
     button:hover { background: #e84118; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    /* ===== MODAL STOCK ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
     }
+    .modal-overlay.activo { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      width: 360px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .modal h3 { margin-top: 0; color: #1e272e; }
+    .modal label { display: block; margin: 10px 0 4px; font-weight: 600; color: #444; font-size: 14px; }
+    .modal input { width: 100%; box-sizing: border-box; margin: 0 0 8px 0; }
 
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
+    .tipo-stock { display: flex; gap: 10px; margin-bottom: 14px; }
+    .tipo-btn {
+      flex: 1; padding: 12px;
+      border: 2px solid #ddd;
+      background: #f5f6fa;
+      color: #555;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .tipo-btn.add.activo { border-color: #27ae60; background: #eafaf1; color: #27ae60; }
+    .tipo-btn.sub.activo { border-color: #e74c3c; background: #fdf2f2; color: #e74c3c; }
+
+    .stock-actual {
+      background: #f0f4ff;
+      border-left: 4px solid #3c6fe4;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 14px;
+      color: #333;
+    }
+    .stock-preview {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 14px;
       text-align: center;
     }
+    .stock-preview span { font-size: 20px; font-weight: 700; }
+    .stock-preview span.positivo { color: #27ae60; }
+    .stock-preview span.negativo { color: #e74c3c; }
+    .stock-preview span.cero { color: #e67e22; }
+
+    .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-cancelar { flex: 1; background: #ccc; color: #333; }
+    .btn-cancelar:hover { background: #aaa; }
+    .btn-confirmar { flex: 2; background: #ff3f34; }
+
+    .badge-bajo { background: #fff3cd; color: #856404; padding: 2px 7px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .badge-cero { background: #fde8e8; color: #a00; padding: 2px 7px; border-radius: 6px; font-size: 12px; font-weight: 600; }
   </style>
 </head>
-
 <body>
 
 <div class="sidebar">
@@ -96,35 +100,25 @@
 </div>
 
 <div class="main">
-
   <div class="header">📦 Bodega - Inventario</div>
-
   <div class="contenido">
 
     <div class="card">
       <h3>➕ Agregar Producto</h3>
-
       <input id="codigo" placeholder="Código de barras">
       <input id="nombre" placeholder="Nombre producto">
       <input id="precioCompra" type="number" placeholder="Precio compra">
       <input id="precioVenta" type="number" placeholder="Precio venta">
       <input id="stock" type="number" placeholder="Stock">
-
       <button onclick="guardar()">Guardar</button>
     </div>
 
     <div class="card">
       <h3>📋 Inventario</h3>
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-          <span style="font-size:18px;">🔍</span>
-          <input 
-           id="buscar" 
-           placeholder="Buscar producto..." 
-           onkeyup="filtrar()"
-           style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc;"
-          >
-       </div>
-
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <span style="font-size:18px;">🔍</span>
+        <input id="buscar" placeholder="Buscar producto..." onkeyup="filtrar()" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      </div>
       <table>
         <thead>
           <tr>
@@ -136,7 +130,6 @@
             <th>Acciones</th>
           </tr>
         </thead>
-
         <tbody id="tabla"></tbody>
       </table>
     </div>
@@ -144,43 +137,82 @@
   </div>
 </div>
 
+<!-- ===== MODAL MODIFICAR STOCK ===== -->
+<div class="modal-overlay" id="modalStock">
+  <div class="modal">
+    <h3>📦 Modificar Stock</h3>
+
+    <div class="stock-actual" id="modal-info-producto">
+      Producto: <b id="modal-nombre-prod">-</b>
+    </div>
+
+    <label>Tipo de ajuste</label>
+    <div class="tipo-stock">
+      <button class="tipo-btn add activo" id="btn-agregar" onclick="seleccionarTipoStock('agregar')">➕ Agregar</button>
+      <button class="tipo-btn sub" id="btn-restar" onclick="seleccionarTipoStock('restar')">➖ Restar</button>
+    </div>
+
+    <label>Cantidad</label>
+    <input type="number" id="modal-cantidad" placeholder="Ej: 10" min="1" oninput="actualizarPreview()">
+
+    <div class="stock-preview" id="stock-preview" style="display:none;">
+      Stock actual: <b id="preview-actual">0</b> → Nuevo stock: <span id="preview-nuevo">0</span>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-cancelar" onclick="cerrarModalStock()">Cancelar</button>
+      <button class="btn-confirmar" onclick="confirmarStock()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 
 const PASSWORD = "bellita123";
 
-// 🔥 AUTO DETECCIÓN (LOCAL vs PRODUCCIÓN)
 const API = location.hostname === "localhost"
   ? "http://localhost:3000"
   : "https://bazar-bellita.onrender.com";
 
 let productos = [];
-//=======FLTRAR======
-function filtrar(){
+let stockIdActual = null;
+let stockActualValor = 0;
+let tipoStockActual = "agregar";
 
-  let t = document.getElementById("buscar")
-    .value
-    .toLowerCase()
-    .trim();
-
+// ================= FILTRAR =================
+function filtrar() {
+  let t = document.getElementById("buscar").value.toLowerCase().trim();
   const filtrados = productos.filter(p =>
     (p.nombre || "").toLowerCase().includes(t) ||
     (p.codigo || "").toLowerCase().includes(t)
   );
+  renderTabla(filtrados);
+}
 
+// ================= CARGAR =================
+async function cargar() {
+  try {
+    const res = await fetch(API + '/productos');
+    if (!res.ok) throw new Error();
+    productos = await res.json();
+    renderTabla(productos);
+  } catch (e) {
+    alert("❌ No conecta con el servidor");
+  }
+}
+
+// ================= RENDER TABLA =================
+function renderTabla(lista) {
   const tabla = document.getElementById('tabla');
-
-  if(filtrados.length === 0){
-    tabla.innerHTML = `
-      <tr>
-        <td colspan="6">No hay productos</td>
-      </tr>
-    `;
+  if (lista.length === 0) {
+    tabla.innerHTML = `<tr><td colspan="6">No hay productos</td></tr>`;
     return;
   }
-
   let html = "";
-
-  filtrados.forEach(p => {
+  lista.forEach(p => {
+    let stockBadge = "";
+    if (p.stock === 0) stockBadge = `<span class="badge-cero">Sin stock</span>`;
+    else if (p.stock <= 3) stockBadge = `<span class="badge-bajo">Stock bajo</span>`;
 
     html += `
       <tr>
@@ -188,155 +220,147 @@ function filtrar(){
         <td>${p.nombre}</td>
         <td>$${p.precioCompra}</td>
         <td>$${p.precioVenta}</td>
-        <td>${p.stock}</td>
+        <td>${p.stock} ${stockBadge}</td>
         <td>
-          <button onclick="editar('${p._id}')">
-            ✏️ Editar
-          </button>
-
-          <button onclick="agregarStock('${p._id}')">
-            ➕ Stock
-          </button>
-
-          <button onclick="eliminar('${p._id}')">
-            🗑️
-          </button>
+          <button onclick="editar('${p._id}')">✏️ Editar</button>
+          <button onclick="abrirModalStock('${p._id}')">📦 Stock</button>
+          <button onclick="eliminar('${p._id}')">🗑️</button>
         </td>
       </tr>
     `;
   });
-
   tabla.innerHTML = html;
-}
-
-// ================= CARGAR =================
-async function cargar() {
-  try{
-    const res = await fetch(API + '/productos');
-
-    if(!res.ok) throw new Error();
-
-    productos = await res.json();
-
-    const tabla = document.getElementById('tabla');
-    tabla.innerHTML = '';
-
-    productos.forEach(p => {
-      tabla.innerHTML += `
-        <tr>
-          <td>${p.codigo || '-'}</td>
-          <td>${p.nombre}</td>
-          <td>$${p.precioCompra}</td>
-          <td>$${p.precioVenta}</td>
-          <td>${p.stock}</td>
-          <td>
-            <button onclick="editar('${p._id}')">✏️</button>
-            <button onclick="agregarStock('${p._id}')">➕</button>
-            <button onclick="eliminar('${p._id}')">🗑️</button>
-          </td>
-        </tr>
-      `;
-    });
-
-  }catch(e){
-    alert("❌ No conecta con el servidor");
-  }
 }
 
 // ================= GUARDAR =================
 async function guardar() {
-
-  if (!nombre.value || !precioVenta.value || !stock.value) {
-    return alert("Completa los datos");
-  }
+  let nombreVal = document.getElementById("nombre").value;
+  let precioVentaVal = document.getElementById("precioVenta").value;
+  let stockVal = document.getElementById("stock").value;
+  if (!nombreVal || !precioVentaVal || !stockVal) return alert("Completa los datos");
 
   await fetch(API + '/productos', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      codigo: codigo.value,
-      nombre: nombre.value,
-      precioCompra: Number(precioCompra.value),
-      precioVenta: Number(precioVenta.value),
-      stock: Number(stock.value)
+      codigo: document.getElementById("codigo").value,
+      nombre: nombreVal,
+      precioCompra: Number(document.getElementById("precioCompra").value),
+      precioVenta: Number(precioVentaVal),
+      stock: Number(stockVal)
     })
   });
-
   limpiar();
   cargar();
 }
 
 // ================= EDITAR =================
-async function editar(id){
-
-  let p = productos.find(x=>x._id===id);
-
+async function editar(id) {
+  let p = productos.find(x => x._id === id);
   let codigoNuevo = prompt("Código:", p.codigo);
   let nombreNuevo = prompt("Nombre:", p.nombre);
   let compraNuevo = parseFloat(prompt("Precio compra:", p.precioCompra));
   let ventaNuevo = parseFloat(prompt("Precio venta:", p.precioVenta));
-
-  if(!nombreNuevo) return;
-
+  if (!nombreNuevo) return;
   await fetch(API + `/productos/${id}`, {
     method: "PUT",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      codigo: codigoNuevo,
-      nombre: nombreNuevo,
-      precioCompra: compraNuevo,
-      precioVenta: ventaNuevo
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ codigo: codigoNuevo, nombre: nombreNuevo, precioCompra: compraNuevo, precioVenta: ventaNuevo })
   });
-
   cargar();
 }
 
-// ================= STOCK =================
-async function agregarStock(id){
+// ================= MODAL STOCK =================
+function abrirModalStock(id) {
+  let p = productos.find(x => x._id === id);
+  if (!p) return;
+  stockIdActual = id;
+  stockActualValor = p.stock;
+  tipoStockActual = "agregar";
 
-  let cantidad = parseInt(prompt("Agregar stock:"));
+  document.getElementById("modal-nombre-prod").textContent = `${p.nombre} (stock actual: ${p.stock})`;
+  document.getElementById("modal-cantidad").value = "";
+  document.getElementById("stock-preview").style.display = "none";
+  document.getElementById("btn-agregar").classList.add("activo");
+  document.getElementById("btn-restar").classList.remove("activo");
+  document.getElementById("modalStock").classList.add("activo");
+}
 
-  if (!cantidad || cantidad <= 0) return;
+function cerrarModalStock() {
+  document.getElementById("modalStock").classList.remove("activo");
+  stockIdActual = null;
+}
 
-  await fetch(API + `/productos/agregar/${id}`, {
-    method: "PUT",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ cantidad })
-  });
+function seleccionarTipoStock(tipo) {
+  tipoStockActual = tipo;
+  document.getElementById("btn-agregar").classList.toggle("activo", tipo === "agregar");
+  document.getElementById("btn-restar").classList.toggle("activo", tipo === "restar");
+  actualizarPreview();
+}
 
+function actualizarPreview() {
+  let cantidad = parseInt(document.getElementById("modal-cantidad").value) || 0;
+  let preview = document.getElementById("stock-preview");
+  let spanNuevo = document.getElementById("preview-nuevo");
+  document.getElementById("preview-actual").textContent = stockActualValor;
+
+  if (cantidad <= 0) { preview.style.display = "none"; return; }
+
+  let nuevoStock = tipoStockActual === "agregar"
+    ? stockActualValor + cantidad
+    : stockActualValor - cantidad;
+
+  spanNuevo.textContent = nuevoStock;
+  spanNuevo.className = nuevoStock > 0 ? "positivo" : nuevoStock === 0 ? "cero" : "negativo";
+  preview.style.display = "block";
+}
+
+async function confirmarStock() {
+  let cantidad = parseInt(document.getElementById("modal-cantidad").value);
+  if (!cantidad || cantidad <= 0) return alert("Ingresa una cantidad válida");
+
+  if (tipoStockActual === "restar") {
+    let nuevoStock = stockActualValor - cantidad;
+    if (nuevoStock < 0) {
+      if (!confirm(`El stock quedaría en ${nuevoStock} (negativo). ¿Confirmar de todas formas?`)) return;
+    }
+    // Restar: enviamos cantidad negativa o usamos el endpoint de agregar con negativo
+    // Si tu backend solo suma, calculamos el nuevo total y lo enviamos directo
+    await fetch(API + `/productos/agregar/${stockIdActual}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cantidad: -cantidad })
+    });
+  } else {
+    await fetch(API + `/productos/agregar/${stockIdActual}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cantidad })
+    });
+  }
+
+  cerrarModalStock();
   cargar();
 }
 
 // ================= ELIMINAR =================
-async function eliminar(id){
-
-  let pass = prompt("🔐 contraseña");
-
-  if(pass !== PASSWORD){
-    alert("❌ Incorrecta");
-    return;
-  }
-
-  await fetch(API + `/productos/${id}`,{
-    method:'DELETE'
-  });
-
+async function eliminar(id) {
+  let pass = prompt("🔐 Contraseña");
+  if (pass !== PASSWORD) { alert("❌ Incorrecta"); return; }
+  await fetch(API + `/productos/${id}`, { method: 'DELETE' });
   cargar();
 }
 
 // ================= LIMPIAR =================
-function limpiar(){
-  codigo.value="";
-  nombre.value="";
-  precioCompra.value="";
-  precioVenta.value="";
-  stock.value="";
+function limpiar() {
+  document.getElementById("codigo").value = "";
+  document.getElementById("nombre").value = "";
+  document.getElementById("precioCompra").value = "";
+  document.getElementById("precioVenta").value = "";
+  document.getElementById("stock").value = "";
 }
 
 cargar();
-
 </script>
-
 </body>
 </html>
