@@ -58,7 +58,7 @@
 
     <div class="card">
       <h3>➕ Nueva Deuda / Agregar Producto</h3>
-      <small style="color:#666;">Si el cliente ya tiene deuda, se <b>sumará</b> el producto a la deuda existente.</small><br><br>
+      <small style="color:#666;">Si el cliente ya tiene deuda, te preguntaré si agregar a la deuda existente o crear una nueva.</small><br><br>
       <input id="nombre" placeholder="Nombre">
       <input id="apellido" placeholder="Apellido"><br>
       <input id="cedula" placeholder="Cédula">
@@ -160,7 +160,7 @@ function buscarCliente() {
 }
 
 // ================= AGREGAR =================
-// Si el cliente ya tiene una deuda activa (por cédula o nombre), se acumula el producto.
+// Si el cliente ya tiene una deuda activa (por cédula o nombre), permite elegir si agregar a la existente o crear nueva.
 async function agregar() {
   let nombreV = document.getElementById("nombre").value.trim();
   let apellidoV = document.getElementById("apellido").value.trim();
@@ -192,37 +192,66 @@ async function agregar() {
   }
 
   if (deudaExistente) {
-    // ACUMULAR: sumar producto y monto a la deuda existente
-    let productosActualizados = [...(deudaExistente.productos || []), nuevoProducto];
-    let nuevoTotal = deudaExistente.total + totalV;
+    // CLIENTE YA TIENE DEUDA PENDIENTE: preguntar qué hacer
+    let deudaPendiente = (deudaExistente.total - (deudaExistente.pagado || 0)).toFixed(2);
+    let productosExistentes = (deudaExistente.productos || [])
+      .map(p => `• ${p.nombre} x${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}`)
+      .join("\n");
 
-    let confirmar = confirm(
-      `${deudaExistente.cliente} ya tiene una deuda de $${(deudaExistente.total - (deudaExistente.pagado||0)).toFixed(2)} pendiente.\n\n` +
-      `¿Deseas agregar "${productosTexto}" ($${totalV}) a su deuda existente?\n\n` +
-      `Nuevo total: $${nuevoTotal.toFixed(2)}`
+    let respuesta = confirm(
+      `⚠️ ${deudaExistente.cliente} YA TIENE DEUDA PENDIENTE\n\n` +
+      `Deuda pendiente: $${deudaPendiente}\n\n` +
+      `Productos actuales:\n${productosExistentes}\n\n` +
+      `Nuevo producto: ${productosTexto} ($${totalV.toFixed(2)})\n\n` +
+      `¿Deseas AGREGAR este producto a su deuda existente?\n\n` +
+      `✅ ACEPTAR = Agregar a deuda pendiente\n❌ CANCELAR = Crear deuda nueva separada`
     );
-    if (!confirmar) return;
 
-    const res = await fetch(API + '/deudas/' + deudaExistente._id, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cliente: deudaExistente.cliente,
-        cedula: deudaExistente.cedula,
-        celular: deudaExistente.celular,
-        total: nuevoTotal,
-        productos: productosActualizados
-      })
-    });
+    if (respuesta) {
+      // ACUMULAR: sumar producto y monto a la deuda existente
+      let productosActualizados = [...(deudaExistente.productos || []), nuevoProducto];
+      let nuevoTotal = deudaExistente.total + totalV;
 
-    const texto = await res.text();
-    let data;
-    try { data = JSON.parse(texto); } catch { alert("Error del servidor al acumular deuda"); return; }
-    if (!res.ok) { alert(data.error || "Error al actualizar deuda"); return; }
-    alert(`✅ Producto agregado a la deuda de ${deudaExistente.cliente}.\nNuevo total: $${nuevoTotal.toFixed(2)}`);
+      const res = await fetch(API + '/deudas/' + deudaExistente._id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente: deudaExistente.cliente,
+          cedula: deudaExistente.cedula,
+          celular: deudaExistente.celular,
+          total: nuevoTotal,
+          productos: productosActualizados
+        })
+      });
+
+      const texto = await res.text();
+      let data;
+      try { data = JSON.parse(texto); } catch { alert("Error del servidor al acumular deuda"); return; }
+      if (!res.ok) { alert(data.error || "Error al actualizar deuda"); return; }
+      alert(`✅ Producto agregado a deuda existente.\n\nDeuda actualizada: $${nuevoTotal.toFixed(2)}\n\nProductos: ${productosActualizados.length}`);
+
+    } else {
+      // CREAR DEUDA NUEVA (aparte)
+      console.log("Creando deuda nueva separada...");
+      await fetch(API + '/deudas', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente: clienteFinal,
+          cedula: cedulaV || "-",
+          celular: celularV || "",
+          direccion: "",
+          total: totalV,
+          productos: [nuevoProducto],
+          pagos: [],
+          pagado: 0
+        })
+      });
+      alert(`✅ Deuda nueva creada para ${clienteFinal}\n\nMonto: $${totalV.toFixed(2)}\nProducto: ${productosTexto}`);
+    }
 
   } else {
-    // NUEVA DEUDA
+    // NUEVA DEUDA (no existe deuda anterior)
     await fetch(API + '/deudas', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -237,6 +266,7 @@ async function agregar() {
         pagado: 0
       })
     });
+    alert(`✅ Deuda registrada para ${clienteFinal}\n\nMonto: $${totalV.toFixed(2)}\nProducto: ${productosTexto}`);
   }
 
   limpiar();
