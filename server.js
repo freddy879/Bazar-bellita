@@ -73,6 +73,10 @@ const Deuda = mongoose.model('Deuda', {
   productos: { type: Array,  default: [] },
   pagos: [{
     monto: Number,
+    tipoPago: { type: String, default: "efectivo" },
+    banco: String,
+    comprobante: String,
+    remitente: String,
     fecha: { type: Date, default: Date.now }
   }],
   fecha: { type: Date, default: Date.now }
@@ -387,18 +391,33 @@ app.post('/deudas/pagar', async (req, res) => {
   }
 });
 
+// ✅ CORREGIDO: PUT /deudas/:id ahora actualiza productos, pagos y pagado
 app.put('/deudas/:id', async (req, res) => {
   try {
     const deuda = await Deuda.findById(req.params.id);
     if (!deuda) return res.status(404).json({ error: "Deuda no encontrada" });
+    
+    // Actualizar todos los campos
     if (req.body.cliente   !== undefined) deuda.cliente   = req.body.cliente;
     if (req.body.cedula    !== undefined) deuda.cedula    = req.body.cedula;
     if (req.body.celular   !== undefined) deuda.celular   = req.body.celular;
     if (req.body.direccion !== undefined) deuda.direccion = req.body.direccion;
     if (req.body.total     !== undefined) deuda.total     = Number(req.body.total);
+    
+    // ✅ ESTAS LÍNEAS ERAN LAS QUE FALTABAN:
+    if (req.body.productos !== undefined) deuda.productos = req.body.productos;
+    if (req.body.pagado    !== undefined) deuda.pagado    = Number(req.body.pagado);
+    if (req.body.pagos     !== undefined) deuda.pagos     = req.body.pagos;
+    
+    console.log("🔄 Actualizando deuda:", deuda._id);
+    console.log("   Productos:", deuda.productos);
+    console.log("   Total:", deuda.total);
+    console.log("   Pagado:", deuda.pagado);
+    
     await deuda.save();
     res.json({ ok: true, deuda });
   } catch (err) {
+    console.error("❌ Error PUT /deudas/:id", err);
     res.status(500).json({ error: "Error al editar deuda" });
   }
 });
