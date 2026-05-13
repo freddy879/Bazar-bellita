@@ -124,11 +124,11 @@
       <div id="seccionTransferencia" style="display:none">
         <select id="bancoPicker" onchange="mostrarBanco()">
           <option value="">— Selecciona banco —</option>
-          <option value="guayaquil">🟦 Banco Guayaquil</option>
+          <option value="guayaquil">🟦 Banco pacifico</option>
           <option value="pichincha">🟨 Banco Pichincha</option>
         </select>
         <div class="banco-info" id="infoGuayaquil">
-          <div class="banco-nombre">🟦 Banco Guayaquil</div>
+          <div class="banco-nombre">🟦 Banco pacifico</div>
           <div>Cuenta de Ahorros</div>
           <div class="cuenta-num">1024396834</div>
         </div>
@@ -204,7 +204,7 @@ function setTipo(tipo) {
   }
   if (tipo !== "transferencia") {
     document.getElementById("bancoPicker").value = "";
-    document.getElementById("infoGuayaquil").style.display = "none";
+    document.getElementById("infoPacifico").style.display = "none";
     document.getElementById("infoPichincha").style.display  = "none";
     document.getElementById("comprobante").value = "";
   }
@@ -212,7 +212,7 @@ function setTipo(tipo) {
 
 function mostrarBanco() {
   const val = document.getElementById("bancoPicker").value;
-  document.getElementById("infoGuayaquil").style.display = val === "guayaquil" ? "block" : "none";
+  document.getElementById("infoPacifico").style.display = val === "guayaquil" ? "block" : "none";
   document.getElementById("infoPichincha").style.display  = val === "pichincha"  ? "block" : "none";
 }
 
