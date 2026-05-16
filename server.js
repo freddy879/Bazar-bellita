@@ -285,6 +285,40 @@ app.post('/ventas', async (req, res) => {
   }
 });
 
+// ================== BORRAR PRODUCTO DE VENTA ==================
+app.delete('/ventas/producto/:ventaId/:indice', async (req, res) => {
+  try {
+    const venta = await Venta.findById(req.params.ventaId);
+    if (!venta) return res.status(404).json({ error: "Venta no encontrada" });
+
+    const indice = Number(req.params.indice);
+    if (isNaN(indice) || indice < 0 || indice >= venta.productos.length) {
+      return res.status(400).json({ error: "Índice inválido" });
+    }
+
+    venta.productos.splice(indice, 1);
+
+    // Si ya no quedan productos, eliminar la venta completa
+    if (venta.productos.length === 0) {
+      await Venta.findByIdAndDelete(req.params.ventaId);
+      return res.json({ msg: "Venta eliminada (quedó sin productos)" });
+    }
+
+    // Recalcular total sumando precio * cantidad de cada producto restante
+    venta.total = venta.productos.reduce((sum, p) => {
+      return sum + (Number(p.precio || 0) * Number(p.cantidad || 1));
+    }, 0);
+
+    await venta.save();
+    res.json({ msg: "Producto eliminado correctamente" });
+
+  } catch (err) {
+    console.error("Error DELETE /ventas/producto:", err);
+    res.status(500).json({ error: "Error al borrar el producto" });
+  }
+});
+
+// ================== BORRAR DÍA ==================
 app.delete('/ventas/dia', async (req, res) => {
   try {
     const { fecha } = req.body;
@@ -296,38 +330,6 @@ app.delete('/ventas/dia', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error al borrar día" });
-  }
-});
-
-// ================== BORRAR PRODUCTO DE UNA VENTA ==================
-app.delete('/ventas/:id/producto', async (req, res) => {
-  try {
-    const venta = await Venta.findById(req.params.id);
-    if (!venta) return res.status(404).json({ error: "Venta no encontrada" });
-
-    const indice = Number(req.body.indice);
-
-    if (isNaN(indice) || indice < 0 || indice >= venta.productos.length) {
-      return res.status(400).json({ error: "Índice de producto inválido" });
-    }
-
-    const nombreProducto = venta.productos[indice]?.nombre || "producto";
-
-    // Quitar el producto del array
-    venta.productos.splice(indice, 1);
-
-    // Recalcular el total
-    venta.total = venta.productos.reduce((sum, p) => {
-      return sum + (Number(p.precio || 0) * Number(p.cantidad || 1));
-    }, 0);
-
-    await venta.save();
-
-    res.json({ ok: true, msg: `"${nombreProducto}" eliminado correctamente` });
-
-  } catch (err) {
-    console.error("Error al borrar producto:", err);
-    res.status(500).json({ error: "Error al borrar producto" });
   }
 });
 
@@ -659,9 +661,9 @@ app.get('/analisis', async (req, res) => {
   try {
     const ventas = await Venta.find();
 
-    let totalGeneral = 0;
-    let efectivo     = 0;
-    let credito      = 0;
+    let totalGeneral  = 0;
+    let efectivo      = 0;
+    let credito       = 0;
     let transferencia = 0;
 
     const productos = {};
