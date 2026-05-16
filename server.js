@@ -94,7 +94,6 @@ const Cliente = mongoose.model('Cliente', {
   fecha: { type: Date, default: Date.now }
 });
 
-// 🔥 CAJA — modelo completo con horaApertura y horaCierre
 const CajaSchema = new mongoose.Schema({
   apertura:     { type: Number, default: 0 },
   ingresos:     { type: Number, default: 0 },
@@ -300,6 +299,38 @@ app.delete('/ventas/dia', async (req, res) => {
   }
 });
 
+// ================== BORRAR PRODUCTO DE UNA VENTA ==================
+app.delete('/ventas/:id/producto', async (req, res) => {
+  try {
+    const venta = await Venta.findById(req.params.id);
+    if (!venta) return res.status(404).json({ error: "Venta no encontrada" });
+
+    const indice = Number(req.body.indice);
+
+    if (isNaN(indice) || indice < 0 || indice >= venta.productos.length) {
+      return res.status(400).json({ error: "Índice de producto inválido" });
+    }
+
+    const nombreProducto = venta.productos[indice]?.nombre || "producto";
+
+    // Quitar el producto del array
+    venta.productos.splice(indice, 1);
+
+    // Recalcular el total
+    venta.total = venta.productos.reduce((sum, p) => {
+      return sum + (Number(p.precio || 0) * Number(p.cantidad || 1));
+    }, 0);
+
+    await venta.save();
+
+    res.json({ ok: true, msg: `"${nombreProducto}" eliminado correctamente` });
+
+  } catch (err) {
+    console.error("Error al borrar producto:", err);
+    res.status(500).json({ error: "Error al borrar producto" });
+  }
+});
+
 // ================== DEUDAS ==================
 app.get('/deudas', async (req, res) => {
   res.json(await Deuda.find().sort({ fecha: -1 }));
@@ -327,7 +358,6 @@ app.post('/deudas', async (req, res) => {
   }
 });
 
-// 🔥 CORREGIDO: /deudas/pagar ahora distingue efectivo vs transferencia en caja
 app.post('/deudas/pagar', async (req, res) => {
   try {
     const deuda = await Deuda.findById(req.body.id);
@@ -343,7 +373,6 @@ app.post('/deudas/pagar', async (req, res) => {
     deuda.pagos.push({ monto, fecha: new Date() });
     await deuda.save();
 
-    // 🔥 Registrar en caja según el método de pago
     const caja = await Caja.findOne({ activa: true });
     if (caja) {
       const metodoPago  = req.body.metodoPago  || "efectivo";
@@ -351,7 +380,6 @@ app.post('/deudas/pagar', async (req, res) => {
       const comprobante = req.body.comprobante || "";
 
       if (metodoPago === "transferencia") {
-        // Transferencia → aparece en el detalle de transferencias de caja
         caja.ingresos += monto;
         caja.movimientos.push({
           tipo:        "transferencia",
@@ -362,7 +390,6 @@ app.post('/deudas/pagar', async (req, res) => {
           remitente:   deuda.cliente || ""
         });
       } else {
-        // Efectivo → ingreso normal
         caja.ingresos += monto;
         caja.movimientos.push({
           tipo:   "ingreso",
@@ -391,29 +418,25 @@ app.post('/deudas/pagar', async (req, res) => {
   }
 });
 
-// ✅ CORREGIDO: PUT /deudas/:id ahora actualiza productos, pagos y pagado
 app.put('/deudas/:id', async (req, res) => {
   try {
     const deuda = await Deuda.findById(req.params.id);
     if (!deuda) return res.status(404).json({ error: "Deuda no encontrada" });
-    
-    // Actualizar todos los campos
+
     if (req.body.cliente   !== undefined) deuda.cliente   = req.body.cliente;
     if (req.body.cedula    !== undefined) deuda.cedula    = req.body.cedula;
     if (req.body.celular   !== undefined) deuda.celular   = req.body.celular;
     if (req.body.direccion !== undefined) deuda.direccion = req.body.direccion;
     if (req.body.total     !== undefined) deuda.total     = Number(req.body.total);
-    
-    // ✅ ESTAS LÍNEAS ERAN LAS QUE FALTABAN:
     if (req.body.productos !== undefined) deuda.productos = req.body.productos;
     if (req.body.pagado    !== undefined) deuda.pagado    = Number(req.body.pagado);
     if (req.body.pagos     !== undefined) deuda.pagos     = req.body.pagos;
-    
+
     console.log("🔄 Actualizando deuda:", deuda._id);
     console.log("   Productos:", deuda.productos);
     console.log("   Total:", deuda.total);
     console.log("   Pagado:", deuda.pagado);
-    
+
     await deuda.save();
     res.json({ ok: true, deuda });
   } catch (err) {
