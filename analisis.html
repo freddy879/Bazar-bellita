@@ -3,9 +3,7 @@
 <head>
   <title>Dashboard Inteligente</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     body {
       font-family: Arial;
@@ -13,7 +11,6 @@
       display: flex;
       background: #f4f4f4;
     }
-
     .sidebar {
       width: 220px;
       background: #1e272e;
@@ -21,7 +18,6 @@
       height: 100vh;
       padding: 20px;
     }
-
     .sidebar a {
       display: block;
       color: white;
@@ -30,45 +26,28 @@
       margin-top: 10px;
       border-radius: 6px;
     }
-
-    .sidebar a:hover {
-      background: #485460;
-    }
-
-    .main {
-      flex: 1;
-    }
-
+    .sidebar a:hover { background: #485460; }
+    .main { flex: 1; }
     .header {
       background: #ff3f34;
       color: white;
       padding: 15px;
       font-size: 20px;
     }
-
-    .container {
-      padding: 20px;
-    }
-
+    .container { padding: 20px; }
     .grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 15px;
       margin-bottom: 20px;
     }
-
     .card {
       background: white;
       padding: 15px;
       border-radius: 10px;
       box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     }
-
-    .big {
-      font-size: 22px;
-      font-weight: bold;
-    }
-
+    .big { font-size: 22px; font-weight: bold; }
     button {
       padding: 10px;
       border: none;
@@ -78,20 +57,9 @@
       cursor: pointer;
       margin-top: 5px;
     }
-
-    button:hover {
-      background: #e84118;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    li {
-      margin: 5px 0;
-    }
-
+    button:hover { background: #e84118; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 5px 0; }
     input[type="date"] {
       padding: 8px;
       margin-top: 10px;
@@ -99,7 +67,6 @@
       border-radius: 6px;
       border: 1px solid #ccc;
     }
-
     .tag {
       display: inline-block;
       padding: 3px 8px;
@@ -107,13 +74,95 @@
       font-size: 12px;
       color: white;
     }
-
     .efectivo { background: green; }
     .credito { background: orange; }
+
+    /* ===== MODAL CONTRASEÑA ===== */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    #modal-overlay.activo {
+      display: flex;
+    }
+    #modal-box {
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      width: 320px;
+      text-align: center;
+    }
+    #modal-box h3 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      color: #1e272e;
+    }
+    #modal-box p {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 18px;
+    }
+    #modal-password {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1.5px solid #ccc;
+      font-size: 16px;
+      box-sizing: border-box;
+      margin-bottom: 6px;
+      letter-spacing: 3px;
+    }
+    #modal-password:focus {
+      outline: none;
+      border-color: #ff3f34;
+    }
+    #modal-error {
+      color: #e74c3c;
+      font-size: 13px;
+      min-height: 18px;
+      margin-bottom: 10px;
+    }
+    .modal-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .modal-btns button {
+      flex: 1;
+      margin-top: 0;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    #btn-confirmar { background: #e74c3c; }
+    #btn-confirmar:hover { background: #c0392b; }
+    #btn-cancelar { background: #7f8c8d; }
+    #btn-cancelar:hover { background: #636e72; }
   </style>
 </head>
 
 <body>
+
+<!-- MODAL CONTRASEÑA -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <h3>🔐 Confirmar acción</h3>
+    <p id="modal-descripcion">Ingresa la contraseña para continuar</p>
+    <input id="modal-password" type="password" placeholder="••••••••" maxlength="20">
+    <div id="modal-error"></div>
+    <div class="modal-btns">
+      <button id="btn-confirmar" onclick="confirmarModal()">✅ Confirmar</button>
+      <button id="btn-cancelar" onclick="cerrarModal()">✖ Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <div class="sidebar">
   <h2>FIVI</h2>
@@ -126,9 +175,7 @@
 </div>
 
 <div class="main">
-
   <div class="header">📊 Dashboard IA Empresarial</div>
-
   <div class="container">
 
     <!-- DASHBOARD -->
@@ -138,7 +185,6 @@
       <div class="card"><h4>📄 Crédito</h4><div class="big" id="credito">0</div></div>
       <div class="card"><h4>👤 Clientes</h4><div class="big" id="clientes">0</div></div>
     </div>
-
 
     <!-- PRODUCTOS -->
     <div class="grid">
@@ -153,7 +199,6 @@
       <h2>📊 Ventas por día</h2>
       <canvas id="dia"></canvas>
     </div>
-
     <div class="card">
       <h2>📆 Ventas por mes</h2>
       <canvas id="mes"></canvas>
@@ -177,112 +222,175 @@
 
 <script>
 const API = "https://bazar-bellita.onrender.com";
+const CLAVE = "1234"; // 🔑 Cambia aquí tu contraseña
 
 let ventas = [];
 let chart1, chart2;
 
-let vistaDia = null;
+// ===== MODAL =====
+let _accionPendiente = null;
 
-function verDia(fecha) {
-
-  vistaDia = fecha;
-
-  let filtrado = ventas.filter(v =>
-    new Date(v.fecha).toLocaleDateString("es-EC") === fecha
-  );
-
-  mostrar(filtrado);
+function abrirModal(descripcion, accion) {
+  _accionPendiente = accion;
+  document.getElementById("modal-descripcion").innerText = descripcion;
+  document.getElementById("modal-password").value = "";
+  document.getElementById("modal-error").innerText = "";
+  document.getElementById("modal-overlay").classList.add("activo");
+  setTimeout(() => document.getElementById("modal-password").focus(), 100);
 }
 
-function salirDia() {
-
-  vistaDia = null;
-
-  mostrar(ventas);
+function cerrarModal() {
+  _accionPendiente = null;
+  document.getElementById("modal-overlay").classList.remove("activo");
 }
 
-// ================= CARGAR =================
+function confirmarModal() {
+  const ingresada = document.getElementById("modal-password").value;
+
+  if (ingresada === CLAVE) {
+
+    const accion = _accionPendiente;
+
+    cerrarModal();
+
+    if (accion) accion();
+
+  } else {
+    document.getElementById("modal-error").innerText = "❌ Contraseña incorrecta";
+    document.getElementById("modal-password").value = "";
+    document.getElementById("modal-password").focus();
+  }
+}
+
+document.getElementById("modal-password").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") confirmarModal();
+  if (e.key === "Escape") cerrarModal();
+});
+
+// ===== CARGAR =====
 async function cargar() {
-
   const res = await fetch(API + "/analisis");
   const data = await res.json();
-
   ventas = data.ventas || [];
 
-  // DASHBOARD
-  document.getElementById("total").innerText =
-    "$" + (data.totalGeneral || 0).toFixed(2);
+  document.getElementById("total").innerText = "$" + (data.totalGeneral || 0).toFixed(2);
+  document.getElementById("efectivo").innerText = data.efectivo || 0;
+  document.getElementById("credito").innerText = data.credito || 0;
+  document.getElementById("clientes").innerText = data.clientes || 0;
 
-  document.getElementById("efectivo").innerText =
-    data.efectivo || 0;
+  document.getElementById("top").innerText = data.masVendidos?.[0]?.nombre || "-";
+  document.getElementById("low").innerText = data.menosVendidos?.[0]?.nombre || "-";
+  document.getElementById("gTop").innerText = data.masGanancia?.[0]?.nombre || "-";
+  document.getElementById("gLow").innerText = data.menosGanancia?.[0]?.nombre || "-";
 
-  document.getElementById("credito").innerText =
-    data.credito || 0;
-
-  document.getElementById("clientes").innerText =
-    data.clientes || 0;
-
-  // PRODUCTOS
-  document.getElementById("top").innerText =
-    data.masVendidos?.[0]?.nombre || "-";
-
-  document.getElementById("low").innerText =
-    data.menosVendidos?.[0]?.nombre || "-";
-
-  document.getElementById("gTop").innerText =
-    data.masGanancia?.[0]?.nombre || "-";
-
-  document.getElementById("gLow").innerText =
-    data.menosGanancia?.[0]?.nombre || "-";
-
-  // GRÁFICOS
   renderCharts(data);
-
-  // HISTORIAL
   mostrar(ventas);
 }
 
-// ================= GRAFICOS =================
+// ===== GRÁFICOS =====
 function renderCharts(data) {
-
   if (chart1) chart1.destroy();
   if (chart2) chart2.destroy();
 
   chart1 = new Chart(document.getElementById("dia"), {
-
     type: "bar",
-
     data: {
       labels: Object.keys(data.porDia || {}),
-
-      datasets: [{
-        label: "Ventas por día",
-        data: Object.values(data.porDia || {})
-      }]
+      datasets: [{ label: "Ventas por día", data: Object.values(data.porDia || {}) }]
     }
-
   });
 
   chart2 = new Chart(document.getElementById("mes"), {
-
     type: "line",
-
     data: {
       labels: Object.keys(data.porMes || {}),
-
-      datasets: [{
-        label: "Ventas por mes",
-        data: Object.values(data.porMes || {})
-      }]
+      datasets: [{ label: "Ventas por mes", data: Object.values(data.porMes || {}) }]
     }
-
   });
-
 }
 
-// ================= HISTORIAL PRO =================
-function mostrar(lista) {
+// ===== EXTRAER ID SEGURO =====
+// ===== EXTRAER ID SEGURO =====
+function extraerId(id) {
+  if (!id) return "";
 
+  // ObjectId de mongoose
+  if (typeof id === "object" && id.toString) {
+    return id.toString();
+  }
+
+  // Mongo tipo {$oid:""}
+  if (typeof id === "object" && id.$oid) {
+    return id.$oid;
+  }
+
+  return String(id);
+}
+
+// ===== BORRAR PRODUCTO DE UNA VENTA =====
+function pedirBorrarProducto(ventaId, nombreProducto, indiceProd) {
+  abrirModal(
+    `¿Borrar "${nombreProducto}" de esta venta?`,
+    () => borrarProducto(ventaId, indiceProd)
+  );
+}
+
+async function borrarProducto(ventaId, indiceProd) {
+  try {
+    const id  = extraerId(ventaId);
+    const url = API + "/ventas/producto/" + id + "/" + indiceProd;
+
+    console.log("🗑 Intentando borrar:", url);
+
+    const res  = await fetch(url, { method: "DELETE" });
+    const data = await res.json();
+
+    console.log("✅ Respuesta servidor:", data);
+
+    if (data.error) {
+      alert("❌ Error: " + data.error);
+    } else {
+      alert(data.msg || "Producto eliminado");
+      cargar();
+    }
+  } catch (err) {
+    console.error("❌ Error fetch:", err);
+    alert("Error de conexión: " + err.message);
+  }
+}
+
+// ===== BORRAR DÍA COMPLETO =====
+function pedirBorrarDia(fecha) {
+  abrirModal(
+    `¿Borrar TODAS las ventas del día ${fecha}?`,
+    () => borrarDia(fecha)
+  );
+}
+
+async function borrarDia(fecha) {
+  try {
+    let partes   = fecha.split("/");
+    let dia      = partes[0].padStart(2, "0");
+    let mes      = partes[1].padStart(2, "0");
+    let anio     = partes[2];
+    let fechaISO = `${anio}-${mes}-${dia}`;
+
+    const res  = await fetch(API + "/ventas/dia", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fecha: fechaISO })
+    });
+    const data = await res.json();
+    alert(data.msg || "Día eliminado");
+    cargar();
+  } catch (err) {
+    console.error(err);
+    alert("Error al borrar");
+  }
+}
+
+// ===== HISTORIAL =====
+function mostrar(lista) {
   let ul = document.getElementById("historial");
   ul.innerHTML = "";
 
@@ -292,22 +400,15 @@ function mostrar(lista) {
   }
 
   let agrupado = {};
-
   lista.forEach(v => {
-
     let fecha = new Date(v.fecha).toLocaleDateString("es-EC");
-
     if (!agrupado[fecha]) agrupado[fecha] = [];
     agrupado[fecha].push(v);
-
   });
 
   Object.keys(agrupado).forEach(fecha => {
-
     ul.innerHTML += `
       <div style="margin-bottom:20px;">
-        
-        <!-- HEADER DEL DÍA -->
         <div style="
           display:flex;
           justify-content:space-between;
@@ -317,63 +418,61 @@ function mostrar(lista) {
           border-radius:8px;
         ">
           <b>📅 ${fecha}</b>
-
-          <button onclick="borrarDia('${fecha}')"
-            style="
-              background:#e74c3c;
-              color:white;
-              border:none;
-              padding:6px 10px;
-              border-radius:6px;
-              cursor:pointer;
-            ">
-            🗑 Borrar día
-          </button>
+          <button onclick="pedirBorrarDia('${fecha}')" style="
+            background:#e74c3c;color:white;border:none;
+            padding:6px 10px;border-radius:6px;cursor:pointer;margin-top:0;
+          ">🗑 Borrar día</button>
         </div>
-
-        <!-- BOTÓN VER SOLO DÍA -->
-        <button onclick="verDia('${fecha}')"
-          style="
-            margin:8px 0;
-            background:#3498db;
-            color:white;
-            border:none;
-            padding:6px 10px;
-            border-radius:6px;
-            cursor:pointer;
-          ">
-          👁 Ver solo este día
-        </button>
+        <button onclick="verDia('${fecha}')" style="
+          margin:8px 0;background:#3498db;color:white;border:none;
+          padding:6px 10px;border-radius:6px;cursor:pointer;margin-top:4px;
+        ">👁 Ver solo este día</button>
     `;
 
     agrupado[fecha].forEach(v => {
+      // ✅ Extraer el id correctamente aquí también
+      const ventaId = extraerId(v._id);
 
       let productos = "";
-
       if (Array.isArray(v.productos)) {
-
-        productos = "<ul>";
-
-        v.productos.forEach(p => {
-
+        productos = '<ul style="margin:6px 0 0 0;padding:0;list-style:none;">';
+        v.productos.forEach((p, i) => {
+          const nombreEsc = (p.nombre || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
           productos += `
-            <li>
-              📦 ${p.nombre} x${p.cantidad}
+            <li style="
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              padding:5px 8px;
+              margin-bottom:4px;
+              background:#f9f9f9;
+              border-radius:6px;
+              border-left:3px solid #ff3f34;
+            ">
+              <span>📦 ${p.nombre} x${p.cantidad}</span>
+              <button
+                onclick="pedirBorrarProducto('${ventaId}', '${nombreEsc}', ${i})"
+                style="
+                  background:#e74c3c;
+                  color:white;
+                  border:none;
+                  padding:4px 9px;
+                  border-radius:5px;
+                  font-size:13px;
+                  cursor:pointer;
+                  margin-top:0;
+                "
+              >🗑</button>
             </li>
           `;
-
         });
-
         productos += "</ul>";
       }
 
       ul.innerHTML += `
         <div style="
-          background:white;
-          padding:10px;
-          margin-bottom:10px;
-          border-radius:10px;
-          box-shadow:0 2px 6px rgba(0,0,0,0.1)
+          background:white;padding:10px;margin-bottom:10px;
+          border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1)
         ">
           👤 <b>${v.cliente || "-"}</b><br>
           📱 ${v.celular || "-"}<br>
@@ -384,97 +483,27 @@ function mostrar(lista) {
           ${productos}
         </div>
       `;
-
     });
 
     ul.innerHTML += `</div>`;
-
   });
-
 }
 
 function verDia(fecha) {
-
   let filtrado = ventas.filter(v =>
     new Date(v.fecha).toLocaleDateString("es-EC") === fecha
   );
-
   mostrar(filtrado);
 }
 
-async function borrarDia(fecha) {
-
-  if (!confirm("¿Seguro borrar todo el día " + fecha + "?")) {
-    return;
-  }
-
-  try {
-
-    // fecha viene tipo: 10/5/2026
-    let partes = fecha.split("/");
-
-    let dia = partes[0].padStart(2,"0");
-    let mes = partes[1].padStart(2,"0");
-    let anio = partes[2];
-
-    let fechaISO = `${anio}-${mes}-${dia}`;
-
-    const res = await fetch(API + "/ventas/dia", {
-
-      method:"DELETE",
-
-      headers:{
-        "Content-Type":"application/json"
-      },
-
-      body: JSON.stringify({
-        fecha: fechaISO
-      })
-
-    });
-
-    const data = await res.json();
-
-    alert(data.msg || "Día eliminado");
-
-    cargar();
-
-  } catch(err){
-
-    console.log(err);
-
-    alert("Error al borrar");
-
-  }
-
-}
-
-// ================= BUSCAR =================
+// ===== BUSCAR =====
 function buscar() {
-
-  let val =
-    document.getElementById("buscar")
-    .value
-    .toLowerCase();
-
+  let val = document.getElementById("buscar").value.toLowerCase();
   let filtrado = ventas.filter(v =>
-
-    (v.cliente || "")
-    .toLowerCase()
-    .includes(val)
-
-    ||
-
-    (v.cedula || "")
-    .includes(val)
-
-    ||
-
-    (v.celular || "")
-    .includes(val)
-
+    (v.cliente || "").toLowerCase().includes(val) ||
+    (v.cedula  || "").includes(val) ||
+    (v.celular || "").includes(val)
   );
-
   mostrar(filtrado);
 }
 
