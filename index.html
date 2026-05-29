@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ventas </title>
+  <title>Ventas</title>
   <style>
     body { margin: 0; font-family: 'Segoe UI'; display: flex; background: #f5f6fa; }
     .sidebar { width: 220px; background: #1e272e; color: white; height: 100vh; padding: 20px; box-sizing: border-box; }
@@ -14,28 +14,17 @@
     input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input:not([type]) {
       padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px;
     }
-    select {
-      padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box;
-      border: 1px solid #ddd; border-radius: 6px; font-family: 'Segoe UI'; font-size: 14px;
-    }
+    select { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-family: 'Segoe UI'; font-size: 14px; }
     button { padding: 8px 12px; border: none; background: #ff3f34; color: white; border-radius: 6px; cursor: pointer; }
     button:hover { background: #e03329; }
     ul { list-style: none; padding: 0; margin: 0; }
-    .overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6); display: none;
-      justify-content: center; align-items: center; z-index: 1000;
-    }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .factura { background: white; padding: 20px; width: 420px; max-height: 80vh; overflow-y: auto; border-radius: 10px; }
     .factura-btns { display: flex; gap: 10px; margin-top: 12px; }
-    .modal-credito {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6); display: none;
-      justify-content: center; align-items: center; z-index: 1100;
-    }
+    .modal-credito { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1100; }
     .modal-credito-box { background: white; padding: 24px; width: 320px; border-radius: 10px; }
     .modal-credito-box h3 { margin: 0 0 16px; }
-    .modal-credito-box input, .modal-credito-box select { margin-bottom: 10px; }
+    .modal-credito-box input { margin-bottom: 10px; }
     .modal-credito-box .btns { display: flex; gap: 10px; margin-top: 8px; }
     .modal-credito-box .btns button.cancel { background: #888; }
     .pagoBtn { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
@@ -50,30 +39,47 @@
     #lista li button { padding: 4px 10px; font-size: 13px; }
     .total-line { font-size: 18px; font-weight: 600; margin: 10px 0 4px; }
     .descuento-preview { font-size: 13px; color: #888; margin: 0 0 8px; }
-    .spinner {
-      display: inline-block; width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
-      border-radius: 50%; animation: spin 0.6s linear infinite;
-      vertical-align: middle; margin-right: 6px;
-    }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .btn-confirmar { width: 100%; padding: 10px; font-size: 16px; margin-top: 8px; }
     .btn-confirmar:disabled { opacity: 0.6; cursor: not-allowed; }
-    .alerta-error {
-      background: #fff0f0; border: 1px solid #ff3f34;
-      color: #c0392b; border-radius: 6px; padding: 8px 12px;
-      margin: 6px 0; font-size: 13px; display: none;
-    }
-    .banco-info {
-      background: #f0f7ff; border: 1px solid #b3d4f5;
-      border-radius: 8px; padding: 8px 12px;
-      font-size: 13px; color: #1a3c5e; margin-top: 6px; display: none;
-    }
+    .alerta-error { background: #fff0f0; border: 1px solid #ff3f34; color: #c0392b; border-radius: 6px; padding: 8px 12px; margin: 6px 0; font-size: 13px; display: none; }
+    .banco-info { background: #f0f7ff; border: 1px solid #b3d4f5; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #1a3c5e; margin-top: 6px; display: none; }
     .banco-info .banco-nombre { font-weight: bold; margin-bottom: 2px; }
     .banco-info .cuenta-num { font-family: monospace; font-size: 15px; letter-spacing: 1px; color: #0056b3; }
+
+    /* ── IMPRESIÓN 80mm ──
+       La técnica correcta: mover #facturaBox al body durante impresión
+       para que no quede atrapado dentro del .overlay oculto             */
+    @media print {
+      @page { size: 80mm auto; margin: 3mm; }
+      body > *       { display: none !important; }
+      #ticketPrint   { display: block !important; }
+      #ticketPrint * { visibility: visible !important; }
+    }
+    #ticketPrint {
+      display: none;
+      font-family: Arial, sans-serif;
+      width: 72mm;
+      font-size: 12px;
+      color: #000;
+      box-sizing: border-box;
+    }
+    #ticketPrint h2    { text-align: center; margin: 3px 0; font-size: 14px; }
+    #ticketPrint .sub  { text-align: center; font-size: 11px; color: #555; margin: 0 0 3px; }
+    #ticketPrint p     { margin: 2px 0; font-size: 12px; }
+    #ticketPrint hr    { border: none; border-top: 1px dashed #999; margin: 4px 0; }
+    #ticketPrint .fila { display: flex; justify-content: space-between; margin: 2px 0; }
+    #ticketPrint .nom  { flex: 1; padding-right: 4px; }
+    #ticketPrint .pre  { white-space: nowrap; font-weight: bold; }
+    #ticketPrint .tot  { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 3px 0; }
+    #ticketPrint .pie  { text-align: center; font-size: 10px; color: #666; margin-top: 6px; }
   </style>
 </head>
 <body>
+
+<!-- Nodo raíz para el ticket — vive en body, fuera del overlay -->
+<div id="ticketPrint"></div>
 
 <div class="sidebar">
   <h2>NEXUS</h2>
@@ -114,13 +120,11 @@
         <button onclick="setTipo('transferencia')" id="btnT">Transferencia</button>
       </div>
 
-      <!-- Sección efectivo -->
       <div id="seccionEfectivo">
         <input id="montoRecibido" type="number" placeholder="Monto recibido" oninput="calcularVuelto()" min="0">
         <p id="vueltoTxt" class="vuelto-ok">Vuelto: $0.00</p>
       </div>
 
-      <!-- Sección transferencia -->
       <div id="seccionTransferencia" style="display:none">
         <select id="bancoPicker" onchange="mostrarBanco()">
           <option value="">— Selecciona banco —</option>
@@ -147,7 +151,7 @@
   </div>
 </div>
 
-<!-- Modal: factura -->
+<!-- Modal: factura (solo para previsualizar en pantalla) -->
 <div class="overlay" id="overlay">
   <div class="factura">
     <div id="facturaContenido"></div>
@@ -182,8 +186,8 @@ const bancos = {
 };
 
 let productos = [];
-let carrito = [];
-let tipoPago = "efectivo";
+let carrito   = [];
+let tipoPago  = "efectivo";
 let resolveCredito = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -191,52 +195,28 @@ document.addEventListener("DOMContentLoaded", () => {
   cargar();
 });
 
-// ── Abrir caja registradora + imprimir ──────────────────────────────────────
+// ── IMPRIMIR + ABRIR CAJÓN ───────────────────────────────────────────────────
 function imprimirYAbrirCaja() {
-  // Comando ESC/POS para abrir cajón: ESC p 0 25 250
-  // Se envía como texto al puerto de la impresora a través de window.print()
-  // Para impresoras térmicas conectadas como impresora predeterminada,
-  // el cajón se abre automáticamente al imprimir si está conectado al puerto RJ11.
-  // También intentamos abrir mediante un iframe oculto con el comando raw si es posible.
-  abrirCajonRegistradora();
+  // Registrar afterprint UNA sola vez para abrir cajón al terminar
+  window.addEventListener("afterprint", abrirCajon, { once: true });
   window.print();
 }
 
-function abrirCajonRegistradora() {
-  // Método 1: afterprint event — abre el cajón justo al terminar de imprimir
-  window.addEventListener("afterprint", function onAfterPrint() {
-    window.removeEventListener("afterprint", onAfterPrint);
-    enviarComandoCajon();
-  });
+function abrirCajon() {
+  // Las impresoras ESC/POS conectadas por USB/Serial abren el cajón
+  // automáticamente cuando reciben el trabajo de impresión (pin RJ11).
+  // Si usas QZ Tray descomenta la siguiente línea y ajusta el endpoint:
+  // fetch("http://localhost:8181/open-drawer").catch(() => {});
+  console.log("Cajón abierto");
 }
-
-function enviarComandoCajon() {
-  // Método via iframe apuntando a un puerto local si hay un servidor de impresión
-  // En la mayoría de impresoras ESC/POS el cajón se abre sólo con el trabajo de impresión.
-  // Si tu impresora tiene servidor local (ej: QZ Tray, PrintNode, EPSON TM utility),
-  // descomenta y adapta la línea de abajo:
-  // fetch("http://localhost:9100/open-drawer").catch(() => {});
-
-  // Método 2: abrir URL especial para impresoras con driver que soportan comandos directos
-  // Este intento no causa error visible si no está disponible
-  try {
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    // Comando ESC p 0 25 250 codificado: abre cajón en la mayoría de impresoras ESC/POS
-    // Requiere QZ Tray u otro middleware para funcionar en navegador moderno
-    iframe.src = "about:blank";
-    document.body.appendChild(iframe);
-    setTimeout(() => document.body.removeChild(iframe), 1000);
-  } catch(e) {}
-}
-// ────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 function setTipo(tipo) {
   tipoPago = tipo;
   document.getElementById("btnE").classList.toggle("activo", tipo === "efectivo");
   document.getElementById("btnC").classList.toggle("activo", tipo === "credito");
   document.getElementById("btnT").classList.toggle("activo", tipo === "transferencia");
-  document.getElementById("seccionEfectivo").style.display      = tipo === "efectivo"     ? "block" : "none";
+  document.getElementById("seccionEfectivo").style.display      = tipo === "efectivo"      ? "block" : "none";
   document.getElementById("seccionTransferencia").style.display = tipo === "transferencia" ? "block" : "none";
   if (tipo !== "efectivo") {
     document.getElementById("montoRecibido").value = "";
@@ -245,7 +225,7 @@ function setTipo(tipo) {
   if (tipo !== "transferencia") {
     document.getElementById("bancoPicker").value = "";
     document.getElementById("infoGuayaquil").style.display = "none";
-    document.getElementById("infoPichincha").style.display  = "none";
+    document.getElementById("infoPichincha").style.display = "none";
     document.getElementById("comprobante").value = "";
   }
 }
@@ -253,14 +233,14 @@ function setTipo(tipo) {
 function mostrarBanco() {
   const val = document.getElementById("bancoPicker").value;
   document.getElementById("infoGuayaquil").style.display = val === "guayaquil" ? "block" : "none";
-  document.getElementById("infoPichincha").style.display  = val === "pichincha"  ? "block" : "none";
+  document.getElementById("infoPichincha").style.display = val === "pichincha"  ? "block" : "none";
 }
 
 function clampDescuento() {
   const input = document.getElementById("descuento");
   let val = parseFloat(input.value);
   if (isNaN(val)) return;
-  if (val < 0) input.value = 0;
+  if (val < 0)   input.value = 0;
   if (val > 100) input.value = 100;
 }
 
@@ -294,11 +274,11 @@ async function buscarCliente() {
     if (!res.ok) return;
     const data = await res.json();
     if (data && data.nombre) {
-      document.getElementById("cliente").value = data.nombre || "";
+      document.getElementById("cliente").value = data.nombre  || "";
       document.getElementById("celular").value = data.telefono || "";
-      document.getElementById("correo").value  = data.correo || "";
+      document.getElementById("correo").value  = data.correo  || "";
     }
-  } catch (err) { console.error("Error buscando cliente:", err); }
+  } catch (err) { console.error("buscarCliente:", err); }
 }
 
 async function cargar() {
@@ -310,7 +290,7 @@ async function cargar() {
     productos = data;
   } catch (err) {
     mostrarAlerta("Error cargando productos. Verifica la conexión.");
-    console.error("cargar():", err);
+    console.error("cargar:", err);
   }
 }
 
@@ -331,7 +311,7 @@ async function guardarClienteSiNoExiste() {
         body: JSON.stringify({ nombre, cedula, telefono, correo })
       });
     }
-  } catch (err) { console.error("Error guardando cliente:", err); }
+  } catch (err) { console.error("guardarCliente:", err); }
 }
 
 function mostrar(lista) {
@@ -430,6 +410,49 @@ function cerrarFactura() {
   document.getElementById("overlay").style.display = "none";
 }
 
+// Construye el HTML del ticket y lo pone tanto en el modal (preview)
+// como en #ticketPrint (nodo raíz en body, visible al imprimir)
+function construirTicket(datos) {
+  const { cliente, cedula, subtotal, pct, descuentoMonto, totalFinal,
+          tasaPct, montoInteres, meses, pago, vuelto,
+          bancoNombre, bancoCuenta, comprobante } = datos;
+
+  const fecha = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
+
+  let html = `
+    <h2>BAZAR BELLITA</h2>
+    <div class="sub">Factura de venta</div>
+    <div class="sub">${fecha}</div>
+    <hr>
+    <p><b>Cliente:</b> ${cliente || "-"}</p>
+    <p><b>Cédula:</b> ${cedula || "-"}</p>
+    <hr>
+  `;
+
+  carrito.forEach(p => {
+    html += `<div class="fila"><span class="nom">${p.nombre} x${p.cantidad}</span><span class="pre">$${(p.precio * p.cantidad).toFixed(2)}</span></div>`;
+  });
+
+  html += `<hr><p>Subtotal: $${subtotal.toFixed(2)}</p>`;
+  if (pct > 0) html += `<p>Descuento (${pct}%): -$${descuentoMonto.toFixed(2)}</p>`;
+  if (tipoPago === "credito") {
+    html += `<p>Interés (${tasaPct}%): $${montoInteres.toFixed(2)}</p>`;
+    html += `<p>Meses: ${meses}</p>`;
+  }
+  html += `<hr><div class="tot"><span>TOTAL</span><span>$${totalFinal.toFixed(2)}</span></div><hr>`;
+
+  if (tipoPago === "efectivo") {
+    html += `<p>Pago: $${pago.toFixed(2)}</p><p>Vuelto: $${vuelto.toFixed(2)}</p>`;
+  }
+  if (tipoPago === "transferencia") {
+    html += `<p>Banco: ${bancoNombre}</p><p>Cuenta: ${bancoCuenta}</p><p>Comprobante: ${comprobante}</p>`;
+  }
+  html += `<p style="font-size:11px;color:#555;margin-top:4px">Pago: ${tipoPago}</p>`;
+  html += `<div class="pie">¡Gracias por su compra!<br>Vuelva pronto 😊</div>`;
+
+  return html;
+}
+
 async function facturar() {
   const cliente = document.getElementById("cliente").value.trim();
   const cedula  = document.getElementById("cedula").value.trim();
@@ -477,67 +500,17 @@ async function facturar() {
 
   await guardarClienteSiNoExiste();
 
-  // ---- Factura HTML 80mm ----
-  const fecha = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
-  let html = `
-    <style>
-      @page { size: 80mm auto; margin: 4mm; }
-      @media print {
-        body * { visibility: hidden; }
-        #facturaBox, #facturaBox * { visibility: visible; }
-        #facturaBox { position: absolute; left: 0; top: 0; width: 72mm; padding: 0; }
-      }
-      #facturaBox { font-family: Arial, sans-serif; width: 72mm; box-sizing: border-box; font-size: 12px; color: #000; }
-      #facturaBox h2 { text-align: center; margin: 4px 0; font-size: 14px; }
-      #facturaBox .subtitulo { text-align: center; font-size: 11px; color: #555; margin: 0 0 4px; }
-      #facturaBox p { margin: 3px 0; font-size: 12px; }
-      #facturaBox hr { border: none; border-top: 1px dashed #999; margin: 5px 0; }
-      #facturaBox .item-row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 12px; }
-      #facturaBox .item-row .item-nombre { flex: 1; padding-right: 4px; }
-      #facturaBox .item-row .item-precio { white-space: nowrap; font-weight: bold; }
-      #facturaBox .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
-      #facturaBox .footer { text-align: center; font-size: 10px; color: #666; margin-top: 8px; }
-    </style>
-    <div id="facturaBox">
-      <h2>BAZAR BELLITA</h2>
-      <div class="subtitulo">Factura de venta</div>
-      <div class="subtitulo">${fecha}</div>
-      <hr>
-      <p><b>Cliente:</b> ${cliente || "-"}</p>
-      <p><b>Cédula:</b> ${cedula || "-"}</p>
-      <hr>
-  `;
+  const datos = { cliente, cedula, subtotal, pct, descuentoMonto, totalFinal,
+                  tasaPct, montoInteres, meses, pago, vuelto,
+                  bancoNombre, bancoCuenta, comprobante };
+  const ticketHTML = construirTicket(datos);
 
-  carrito.forEach(p => {
-    html += `
-      <div class="item-row">
-        <span class="item-nombre">${p.nombre} x${p.cantidad}</span>
-        <span class="item-precio">$${(p.precio * p.cantidad).toFixed(2)}</span>
-      </div>`;
-  });
-
-  html += `<hr><p>Subtotal: $${subtotal.toFixed(2)}</p>`;
-  if (pct > 0) html += `<p>Descuento (${pct}%): -$${descuentoMonto.toFixed(2)}</p>`;
-  if (tipoPago === "credito") {
-    html += `<p>Interés (${tasaPct}%): $${montoInteres.toFixed(2)}</p>`;
-    html += `<p>Meses: ${meses}</p>`;
-  }
-  html += `<hr><div class="total-row"><span>TOTAL</span><span>$${totalFinal.toFixed(2)}</span></div><hr>`;
-
-  if (tipoPago === "efectivo") {
-    html += `<p>Pago: $${pago.toFixed(2)}</p><p>Vuelto: $${vuelto.toFixed(2)}</p>`;
-  }
-  if (tipoPago === "transferencia") {
-    html += `<p>Banco: ${bancoNombre}</p>`;
-    html += `<p>Cuenta: ${bancoCuenta}</p>`;
-    html += `<p>Comprobante: ${comprobante}</p>`;
-  }
-  html += `<p style="font-size:11px;color:#555;margin-top:4px">Pago: ${tipoPago}</p>`;
-  html += `<div class="footer">¡Gracias por su compra!<br>Vuelva pronto 😊</div>`;
-  html += `</div>`;
-
-  document.getElementById("facturaContenido").innerHTML = html;
+  // 1) Preview en modal (pantalla)
+  document.getElementById("facturaContenido").innerHTML = ticketHTML;
   document.getElementById("overlay").style.display = "flex";
+
+  // 2) Nodo de impresión en body (fuera del overlay, visible al imprimir)
+  document.getElementById("ticketPrint").innerHTML = ticketHTML;
 
   try {
     const resVenta = await fetch(`${API}/ventas`, {
@@ -592,7 +565,7 @@ function limpiarFormulario() {
   document.getElementById("buscar").value    = "";
   document.getElementById("bancoPicker").value = "";
   document.getElementById("infoGuayaquil").style.display = "none";
-  document.getElementById("infoPichincha").style.display  = "none";
+  document.getElementById("infoPichincha").style.display = "none";
   setTipo("efectivo");
 }
 </script>
