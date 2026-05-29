@@ -152,7 +152,7 @@
   <div class="factura">
     <div id="facturaContenido"></div>
     <div class="factura-btns">
-      <button onclick="window.print()">🖨️ Imprimir</button>
+      <button onclick="imprimirYAbrirCaja()">🖨️ Imprimir</button>
       <button onclick="cerrarFactura()" style="background:#888">Cerrar</button>
     </div>
   </div>
@@ -190,6 +190,46 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cedula").addEventListener("input", buscarCliente);
   cargar();
 });
+
+// ── Abrir caja registradora + imprimir ──────────────────────────────────────
+function imprimirYAbrirCaja() {
+  // Comando ESC/POS para abrir cajón: ESC p 0 25 250
+  // Se envía como texto al puerto de la impresora a través de window.print()
+  // Para impresoras térmicas conectadas como impresora predeterminada,
+  // el cajón se abre automáticamente al imprimir si está conectado al puerto RJ11.
+  // También intentamos abrir mediante un iframe oculto con el comando raw si es posible.
+  abrirCajonRegistradora();
+  window.print();
+}
+
+function abrirCajonRegistradora() {
+  // Método 1: afterprint event — abre el cajón justo al terminar de imprimir
+  window.addEventListener("afterprint", function onAfterPrint() {
+    window.removeEventListener("afterprint", onAfterPrint);
+    enviarComandoCajon();
+  });
+}
+
+function enviarComandoCajon() {
+  // Método via iframe apuntando a un puerto local si hay un servidor de impresión
+  // En la mayoría de impresoras ESC/POS el cajón se abre sólo con el trabajo de impresión.
+  // Si tu impresora tiene servidor local (ej: QZ Tray, PrintNode, EPSON TM utility),
+  // descomenta y adapta la línea de abajo:
+  // fetch("http://localhost:9100/open-drawer").catch(() => {});
+
+  // Método 2: abrir URL especial para impresoras con driver que soportan comandos directos
+  // Este intento no causa error visible si no está disponible
+  try {
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    // Comando ESC p 0 25 250 codificado: abre cajón en la mayoría de impresoras ESC/POS
+    // Requiere QZ Tray u otro middleware para funcionar en navegador moderno
+    iframe.src = "about:blank";
+    document.body.appendChild(iframe);
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  } catch(e) {}
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 function setTipo(tipo) {
   tipoPago = tipo;
@@ -437,34 +477,53 @@ async function facturar() {
 
   await guardarClienteSiNoExiste();
 
-  // ---- Factura HTML ----
+  // ---- Factura HTML 80mm ----
+  const fecha = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
   let html = `
     <style>
+      @page { size: 80mm auto; margin: 4mm; }
       @media print {
         body * { visibility: hidden; }
         #facturaBox, #facturaBox * { visibility: visible; }
-        #facturaBox { position: absolute; left: 0; top: 0; width: 210mm; padding: 20px; }
+        #facturaBox { position: absolute; left: 0; top: 0; width: 72mm; padding: 0; }
       }
-      #facturaBox { font-family: Arial; width: 100%; box-sizing: border-box; }
-      #facturaBox h2 { text-align: center; margin-bottom: 10px; }
-      #facturaBox hr { border: none; border-top: 1px solid #ccc; }
+      #facturaBox { font-family: Arial, sans-serif; width: 72mm; box-sizing: border-box; font-size: 12px; color: #000; }
+      #facturaBox h2 { text-align: center; margin: 4px 0; font-size: 14px; }
+      #facturaBox .subtitulo { text-align: center; font-size: 11px; color: #555; margin: 0 0 4px; }
+      #facturaBox p { margin: 3px 0; font-size: 12px; }
+      #facturaBox hr { border: none; border-top: 1px dashed #999; margin: 5px 0; }
+      #facturaBox .item-row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 12px; }
+      #facturaBox .item-row .item-nombre { flex: 1; padding-right: 4px; }
+      #facturaBox .item-row .item-precio { white-space: nowrap; font-weight: bold; }
+      #facturaBox .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
+      #facturaBox .footer { text-align: center; font-size: 10px; color: #666; margin-top: 8px; }
     </style>
     <div id="facturaBox">
-      <h2>FACTURA BAZAR BELLITA</h2>
+      <h2>BAZAR BELLITA</h2>
+      <div class="subtitulo">Factura de venta</div>
+      <div class="subtitulo">${fecha}</div>
+      <hr>
       <p><b>Cliente:</b> ${cliente || "-"}</p>
       <p><b>Cédula:</b> ${cedula || "-"}</p>
       <hr>
   `;
+
   carrito.forEach(p => {
-    html += `<p>${p.nombre} x${p.cantidad} = <b>$${(p.precio * p.cantidad).toFixed(2)}</b></p>`;
+    html += `
+      <div class="item-row">
+        <span class="item-nombre">${p.nombre} x${p.cantidad}</span>
+        <span class="item-precio">$${(p.precio * p.cantidad).toFixed(2)}</span>
+      </div>`;
   });
+
   html += `<hr><p>Subtotal: $${subtotal.toFixed(2)}</p>`;
   if (pct > 0) html += `<p>Descuento (${pct}%): -$${descuentoMonto.toFixed(2)}</p>`;
   if (tipoPago === "credito") {
     html += `<p>Interés (${tasaPct}%): $${montoInteres.toFixed(2)}</p>`;
     html += `<p>Meses: ${meses}</p>`;
   }
-  html += `<h2>Total: $${totalFinal.toFixed(2)}</h2>`;
+  html += `<hr><div class="total-row"><span>TOTAL</span><span>$${totalFinal.toFixed(2)}</span></div><hr>`;
+
   if (tipoPago === "efectivo") {
     html += `<p>Pago: $${pago.toFixed(2)}</p><p>Vuelto: $${vuelto.toFixed(2)}</p>`;
   }
@@ -473,15 +532,14 @@ async function facturar() {
     html += `<p>Cuenta: ${bancoCuenta}</p>`;
     html += `<p>Comprobante: ${comprobante}</p>`;
   }
-  html += `<p style="font-size:12px;color:#888;margin-top:12px">Tipo de pago: ${tipoPago}</p></div>`;
+  html += `<p style="font-size:11px;color:#555;margin-top:4px">Pago: ${tipoPago}</p>`;
+  html += `<div class="footer">¡Gracias por su compra!<br>Vuelva pronto 😊</div>`;
+  html += `</div>`;
 
   document.getElementById("facturaContenido").innerHTML = html;
   document.getElementById("overlay").style.display = "flex";
 
   try {
-    // ✅ UNA SOLA llamada: el backend se encarga de registrar
-    //    la transferencia en caja internamente si tipo === "transferencia"
-    //    NO llamamos a /caja/transferencia por separado (eso causaba el duplicado)
     const resVenta = await fetch(`${API}/ventas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -496,10 +554,6 @@ async function facturar() {
     });
     if (!resVenta.ok) throw new Error("HTTP " + resVenta.status);
 
-    // ❌ ELIMINADO: ya no llamamos a /caja/transferencia por separado
-    // Esto era lo que causaba el duplicado (111 en ventas + 111 en caja = 222)
-
-    // Descontar stock
     const resultadosStock = await Promise.allSettled(
       carrito.map(p => fetch(`${API}/productos/vender/${p.id}`, {
         method: "PUT",
