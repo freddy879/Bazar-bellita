@@ -6,7 +6,18 @@ const cors     = require('cors');
 
 const app = express();
 
-app.use(cors());
+// Configuración avanzada de CORS para aceptar archivos locales 'file://'
+app.use(cors({
+  origin: function (origin, callback) {
+    // Si la petición viene de un archivo local (origin es null o undefined), la permitimos
+    if (!origin || origin === 'null') {
+      return callback(null, true);
+    }
+    // Para cualquier otro origen web, también lo permitimos
+    return callback(null, true);
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.static('public'));
 
