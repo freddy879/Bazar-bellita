@@ -8,9 +8,10 @@
     .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; margin-top: 10px; border-radius: 8px; }
     .sidebar a:hover { background: #485460; }
     .main { flex: 1; overflow-y: auto; }
-    .header { background: #ff3f34; color: white; padding: 15px; font-size: 20px; }
+    .header { display: none; }
     .contenido { padding: 20px; display: flex; gap: 20px; }
     .card { background: white; padding: 15px; border-radius: 12px; flex: 1; }
+    .card h3 { margin: 0 0 10px; }
     input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input:not([type]) {
       padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px;
     }
@@ -48,9 +49,25 @@
     .banco-info .banco-nombre { font-weight: bold; margin-bottom: 2px; }
     .banco-info .cuenta-num { font-family: monospace; font-size: 15px; letter-spacing: 1px; color: #0056b3; }
 
-    /* ── IMPRESIÓN 80mm ──
-       La técnica correcta: mover #facturaBox al body durante impresión
-       para que no quede atrapado dentro del .overlay oculto             */
+    /* MODAL CANTIDAD */
+    .modal-cantidad {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.55); display: none;
+      justify-content: center; align-items: center; z-index: 1200;
+    }
+    .modal-cantidad-box {
+      background: white; padding: 26px 28px; width: 300px;
+      border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    .modal-cantidad-box h3 { margin: 0 0 4px; font-size: 16px; }
+    .modal-cantidad-box .stock-info { font-size: 12px; color: #888; margin-bottom: 14px; }
+    .modal-cantidad-box input { margin-bottom: 4px; }
+    .modal-cantidad-box .error-cant { font-size: 12px; color: #e03329; min-height: 16px; margin-bottom: 8px; }
+    .modal-cantidad-box .btns { display: flex; gap: 10px; margin-top: 4px; }
+    .modal-cantidad-box .btns button { flex: 1; padding: 9px; font-size: 14px; font-weight: bold; }
+    .modal-cantidad-box .btns button.cancel { background: #888; }
+    .modal-cantidad-box .btns button.cancel:hover { background: #555; }
+
     @media print {
       @page { size: 80mm auto; margin: 3mm; }
       body > *       { display: none !important; }
@@ -58,12 +75,8 @@
       #ticketPrint * { visibility: visible !important; }
     }
     #ticketPrint {
-      display: none;
-      font-family: Arial, sans-serif;
-      width: 72mm;
-      font-size: 12px;
-      color: #000;
-      box-sizing: border-box;
+      display: none; font-family: Arial, sans-serif; width: 72mm;
+      font-size: 12px; color: #000; box-sizing: border-box;
     }
     #ticketPrint h2    { text-align: center; margin: 3px 0; font-size: 14px; }
     #ticketPrint .sub  { text-align: center; font-size: 11px; color: #555; margin: 0 0 3px; }
@@ -78,7 +91,6 @@
 </head>
 <body>
 
-<!-- Nodo raíz para el ticket — vive en body, fuera del overlay -->
 <div id="ticketPrint"></div>
 
 <div class="sidebar">
@@ -92,7 +104,6 @@
 </div>
 
 <div class="main">
-  <div class="header">🛒 Ventas</div>
   <div class="contenido">
 
     <div class="card">
@@ -103,6 +114,12 @@
 
     <div class="card">
       <h3 style="margin:0 0 10px">Nueva venta</h3>
+
+      <!-- BOTÓN CONSUMIDOR FINAL -->
+      <button class="btn-consumidor" id="btnConsumidorFinal" onclick="toggleConsumidorFinal()">
+        👤 Consumidor Final
+      </button>
+
       <input id="cliente" placeholder="Cliente *">
       <input id="cedula" placeholder="Cédula">
       <input id="celular" placeholder="Celular" type="tel">
@@ -133,13 +150,13 @@
         </select>
         <div class="banco-info" id="infoGuayaquil">
           <div class="banco-nombre">🟦 Banco Guayaquil</div>
-          <div>Cuenta de Ahorros</div>
-          <div class="cuenta-num">xxxxxxxxxx</div>
+          <div>Cuenta corriente</div>
+          <div class="cuenta-num">0046069900</div>
         </div>
         <div class="banco-info" id="infoPichincha">
           <div class="banco-nombre">🟨 Banco Pichincha</div>
           <div>Cuenta de Ahorros</div>
-          <div class="cuenta-num">2208028078</div>
+          <div class="cuenta-num">2202438965</div>
         </div>
         <input id="comprobante" type="text" placeholder="Número de comprobante *">
       </div>
@@ -151,7 +168,7 @@
   </div>
 </div>
 
-<!-- Modal: factura (solo para previsualizar en pantalla) -->
+<!-- Modal: factura -->
 <div class="overlay" id="overlay">
   <div class="factura">
     <div id="facturaContenido"></div>
@@ -177,40 +194,107 @@
   </div>
 </div>
 
+<!-- Modal: cantidad -->
+<div class="modal-cantidad" id="modalCantidad">
+  <div class="modal-cantidad-box">
+    <h3 id="cantModalNombre">Producto</h3>
+    <div class="stock-info" id="cantModalStock">Stock disponible: 0</div>
+    <input type="number" id="cantInput" placeholder="Cantidad" min="1" oninput="validarCantInput()">
+    <div class="error-cant" id="cantError"></div>
+    <div class="btns">
+      <button class="cancel" onclick="cancelarCantidad()">Cancelar</button>
+      <button onclick="confirmarCantidad()">+ Agregar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = "https://bazar-bellita.onrender.com";
 
 const bancos = {
-  guayaquil: { nombre: "Banco Guayaquil", cuenta: "0000000000" },
-  pichincha:  { nombre: "Banco Pichincha", cuenta: "2208028078" }
+  guayaquil: { nombre: "Banco Guayaquil", cuenta: "0046069900" },
+  pichincha:  { nombre: "Banco Pichincha", cuenta: "2202438965" }
 };
 
 let productos = [];
 let carrito   = [];
 let tipoPago  = "efectivo";
-let resolveCredito = null;
+let resolveCredito  = null;
+let resolveCantidad = null;
+let _productoActivo = null;
+let esConsumidorFinal = false; // ← estado del toggle
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("cedula").addEventListener("input", buscarCliente);
+  document.getElementById("cedula").addEventListener("input", () => {
+    // Si el usuario escribe en cédula manualmente, desactivar el modo CF
+    if (esConsumidorFinal) desactivarConsumidorFinal();
+    buscarCliente();
+  });
+
+  document.getElementById("cliente").addEventListener("input", () => {
+    if (esConsumidorFinal) desactivarConsumidorFinal();
+  });
+
+  document.getElementById("cantInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") confirmarCantidad();
+    if (e.key === "Escape") cancelarCantidad();
+  });
+
   cargar();
 });
 
-// ── IMPRIMIR + ABRIR CAJÓN ───────────────────────────────────────────────────
+/* ══════════════════════════════════════
+   CONSUMIDOR FINAL
+══════════════════════════════════════ */
+function toggleConsumidorFinal() {
+  if (esConsumidorFinal) {
+    desactivarConsumidorFinal();
+  } else {
+    activarConsumidorFinal();
+  }
+}
+
+function activarConsumidorFinal() {
+  esConsumidorFinal = true;
+  document.getElementById("cliente").value  = "CONSUMIDOR FINAL";
+  document.getElementById("cedula").value   = "9999999999999";
+  document.getElementById("celular").value  = "";
+  document.getElementById("correo").value   = "";
+
+  // Deshabilitar campos para que no se editen accidentalmente
+  document.getElementById("cliente").readOnly = true;
+  document.getElementById("cedula").readOnly  = true;
+
+  // Resaltar el botón
+  document.getElementById("btnConsumidorFinal").classList.add("activo-cf");
+  document.getElementById("btnConsumidorFinal").textContent = "✅ Consumidor Final (activo)";
+}
+
+function desactivarConsumidorFinal() {
+  esConsumidorFinal = false;
+  document.getElementById("cliente").readOnly = false;
+  document.getElementById("cedula").readOnly  = false;
+
+  // Solo limpiar si tenían los valores de CF (evitar borrar datos reales)
+  if (document.getElementById("cliente").value === "CONSUMIDOR FINAL") {
+    document.getElementById("cliente").value = "";
+  }
+  if (document.getElementById("cedula").value === "9999999999999") {
+    document.getElementById("cedula").value = "";
+  }
+
+  document.getElementById("btnConsumidorFinal").classList.remove("activo-cf");
+  document.getElementById("btnConsumidorFinal").textContent = "👤 Consumidor Final";
+}
+
+/* IMPRIMIR */
 function imprimirYAbrirCaja() {
-  // Registrar afterprint UNA sola vez para abrir cajón al terminar
   window.addEventListener("afterprint", abrirCajon, { once: true });
   window.print();
 }
+function abrirCajon() { console.log("Cajón abierto"); }
 
-function abrirCajon() {
-  // Las impresoras ESC/POS conectadas por USB/Serial abren el cajón
-  // automáticamente cuando reciben el trabajo de impresión (pin RJ11).
-  // Si usas QZ Tray descomenta la siguiente línea y ajusta el endpoint:
-  // fetch("http://localhost:8181/open-drawer").catch(() => {});
-  console.log("Cajón abierto");
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
+/* TIPO DE PAGO */
 function setTipo(tipo) {
   tipoPago = tipo;
   document.getElementById("btnE").classList.toggle("activo", tipo === "efectivo");
@@ -274,9 +358,9 @@ async function buscarCliente() {
     if (!res.ok) return;
     const data = await res.json();
     if (data && data.nombre) {
-      document.getElementById("cliente").value = data.nombre  || "";
+      document.getElementById("cliente").value = data.nombre   || "";
       document.getElementById("celular").value = data.telefono || "";
-      document.getElementById("correo").value  = data.correo  || "";
+      document.getElementById("correo").value  = data.correo   || "";
     }
   } catch (err) { console.error("buscarCliente:", err); }
 }
@@ -299,7 +383,8 @@ async function guardarClienteSiNoExiste() {
   const cedula   = document.getElementById("cedula").value.trim();
   const telefono = document.getElementById("celular").value.trim();
   const correo   = document.getElementById("correo").value.trim();
-  if (!cedula || !nombre) return;
+  // No guardar consumidor final en la base de clientes
+  if (!cedula || !nombre || cedula === "9999999999999") return;
   try {
     const res = await fetch(`${API}/clientes/${cedula}`);
     let data = null;
@@ -337,18 +422,91 @@ function filtrar() {
   mostrar(f);
 }
 
-function agregar(id) {
+/* ══════════════════════════════════════
+   MODAL CANTIDAD
+══════════════════════════════════════ */
+function pedirCantidad(producto) {
+  return new Promise((resolve, reject) => {
+    _productoActivo = producto;
+    resolveCantidad = { resolve, reject };
+
+    const yaEnCarrito = carrito.find(x => x.id === producto._id);
+    const enCarrito = yaEnCarrito ? yaEnCarrito.cantidad : 0;
+    const disponible = producto.stock - enCarrito;
+
+    document.getElementById("cantModalNombre").textContent = producto.nombre;
+    document.getElementById("cantModalStock").textContent  =
+      `Stock disponible: ${producto.stock}${enCarrito > 0 ? ` (${enCarrito} ya en carrito)` : ""}`;
+    document.getElementById("cantInput").value = "";
+    document.getElementById("cantInput").max   = disponible;
+    document.getElementById("cantError").textContent = "";
+
+    document.getElementById("modalCantidad").style.display = "flex";
+    setTimeout(() => document.getElementById("cantInput").focus(), 80);
+  });
+}
+
+function validarCantInput() {
+  const p = _productoActivo;
+  if (!p) return;
+  const enCarrito  = (carrito.find(x => x.id === p._id) || {}).cantidad || 0;
+  const disponible = p.stock - enCarrito;
+  const val = parseInt(document.getElementById("cantInput").value) || 0;
+  const errEl = document.getElementById("cantError");
+
+  if (val <= 0)              errEl.textContent = "Ingresa una cantidad mayor a 0.";
+  else if (val > disponible) errEl.textContent = `Máximo disponible: ${disponible}`;
+  else                       errEl.textContent = "";
+}
+
+function confirmarCantidad() {
+  const p = _productoActivo;
+  if (!p) return;
+  const enCarrito  = (carrito.find(x => x.id === p._id) || {}).cantidad || 0;
+  const disponible = p.stock - enCarrito;
+  const cant = parseInt(document.getElementById("cantInput").value);
+
+  if (!cant || cant <= 0) {
+    document.getElementById("cantError").textContent = "Ingresa una cantidad mayor a 0.";
+    return;
+  }
+  if (cant > disponible) {
+    document.getElementById("cantError").textContent = `Sin stock suficiente. Disponible: ${disponible}`;
+    return;
+  }
+
+  const cb = resolveCantidad;
+  cerrarModalCantidad();
+  if (cb) cb.resolve(cant);
+}
+
+function cancelarCantidad() {
+  const cb = resolveCantidad;
+  cerrarModalCantidad();
+  if (cb) cb.reject(new Error("Cancelado"));
+}
+
+function cerrarModalCantidad() {
+  document.getElementById("modalCantidad").style.display = "none";
+  _productoActivo = null;
+  resolveCantidad = null;
+}
+
+/* ══════════════════════════════════════
+   AGREGAR AL CARRITO
+══════════════════════════════════════ */
+async function agregar(id) {
   const p = productos.find(x => x._id === id);
   if (!p) return;
-  const cantStr = prompt(`Cantidad para "${p.nombre}" (stock: ${p.stock})`);
-  if (cantStr === null) return;
-  const cant = parseInt(cantStr);
-  if (!cant || cant <= 0) return alert("Cantidad inválida");
-  const existe = carrito.find(x => x.id === id);
-  const cantidadActual = existe ? existe.cantidad : 0;
-  if (cantidadActual + cant > p.stock) {
-    return alert(`Sin stock suficiente. Disponible: ${p.stock}, en carrito: ${cantidadActual}`);
+
+  let cant;
+  try {
+    cant = await pedirCantidad(p);
+  } catch (_) {
+    return;
   }
+
+  const existe = carrito.find(x => x.id === id);
   if (existe) { existe.cantidad += cant; }
   else { carrito.push({ id, nombre: p.nombre, precio: Number(p.precioVenta), cantidad: cant }); }
   actualizar();
@@ -376,6 +534,7 @@ function eliminarProducto(id) {
   actualizar();
 }
 
+/* MODAL CRÉDITO */
 function pedirDatosCredito() {
   return new Promise((resolve, reject) => {
     resolveCredito = { resolve, reject };
@@ -384,7 +543,6 @@ function pedirDatosCredito() {
     document.getElementById("modalCredito").style.display = "flex";
   });
 }
-
 function confirmarCredito() {
   const tasaPct = parseFloat(document.getElementById("inputInteres").value) || 0;
   const meses   = parseInt(document.getElementById("inputMeses").value) || 0;
@@ -393,7 +551,6 @@ function confirmarCredito() {
   document.getElementById("modalCredito").style.display = "none";
   if (resolveCredito) resolveCredito.resolve({ tasaPct, meses });
 }
-
 function cancelarCredito() {
   document.getElementById("modalCredito").style.display = "none";
   if (resolveCredito) resolveCredito.reject(new Error("Cancelado"));
@@ -410,29 +567,27 @@ function cerrarFactura() {
   document.getElementById("overlay").style.display = "none";
 }
 
-// Construye el HTML del ticket y lo pone tanto en el modal (preview)
-// como en #ticketPrint (nodo raíz en body, visible al imprimir)
 function construirTicket(datos) {
   const { cliente, cedula, subtotal, pct, descuentoMonto, totalFinal,
           tasaPct, montoInteres, meses, pago, vuelto,
           bancoNombre, bancoCuenta, comprobante } = datos;
-
   const fecha = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
 
+  // Mostrar "CONSUMIDOR FINAL" en ticket en lugar del número largo
+  const cedulaMostrar = cedula === "9999999999999" ? "CONSUMIDOR FINAL" : (cedula || "-");
+
   let html = `
-    <h2>BAZAR BELLITA</h2>
+    <h2>AGRO NARANJITO #1</h2>
     <div class="sub">Factura de venta</div>
     <div class="sub">${fecha}</div>
     <hr>
     <p><b>Cliente:</b> ${cliente || "-"}</p>
-    <p><b>Cédula:</b> ${cedula || "-"}</p>
+    <p><b>Cédula:</b> ${cedulaMostrar}</p>
     <hr>
   `;
-
   carrito.forEach(p => {
     html += `<div class="fila"><span class="nom">${p.nombre} x${p.cantidad}</span><span class="pre">$${(p.precio * p.cantidad).toFixed(2)}</span></div>`;
   });
-
   html += `<hr><p>Subtotal: $${subtotal.toFixed(2)}</p>`;
   if (pct > 0) html += `<p>Descuento (${pct}%): -$${descuentoMonto.toFixed(2)}</p>`;
   if (tipoPago === "credito") {
@@ -440,7 +595,6 @@ function construirTicket(datos) {
     html += `<p>Meses: ${meses}</p>`;
   }
   html += `<hr><div class="tot"><span>TOTAL</span><span>$${totalFinal.toFixed(2)}</span></div><hr>`;
-
   if (tipoPago === "efectivo") {
     html += `<p>Pago: $${pago.toFixed(2)}</p><p>Vuelto: $${vuelto.toFixed(2)}</p>`;
   }
@@ -449,7 +603,6 @@ function construirTicket(datos) {
   }
   html += `<p style="font-size:11px;color:#555;margin-top:4px">Pago: ${tipoPago}</p>`;
   html += `<div class="pie">¡Gracias por su compra!<br>Vuelva pronto 😊</div>`;
-
   return html;
 }
 
@@ -505,11 +658,8 @@ async function facturar() {
                   bancoNombre, bancoCuenta, comprobante };
   const ticketHTML = construirTicket(datos);
 
-  // 1) Preview en modal (pantalla)
   document.getElementById("facturaContenido").innerHTML = ticketHTML;
   document.getElementById("overlay").style.display = "flex";
-
-  // 2) Nodo de impresión en body (fuera del overlay, visible al imprimir)
   document.getElementById("ticketPrint").innerHTML = ticketHTML;
 
   try {
@@ -536,7 +686,7 @@ async function facturar() {
     );
     const fallos = resultadosStock.filter(r => r.status === "rejected" || (r.value && !r.value.ok));
     if (fallos.length > 0) {
-      mostrarAlerta(`⚠️ Venta guardada, pero ${fallos.length} producto(s) no actualizaron stock. Revisar bodega.`);
+      mostrarAlerta(`⚠️ Venta guardada, pero ${fallos.length} producto(s) no actualizaron stock.`);
     }
 
     limpiarFormulario();
@@ -558,17 +708,23 @@ function limpiarFormulario() {
   ["cliente","cedula","celular","correo","montoRecibido","descuento","comprobante"].forEach(id => {
     document.getElementById(id).value = "";
   });
-  document.getElementById("vueltoTxt").textContent = "Vuelto: $0.00";
-  document.getElementById("vueltoTxt").className   = "vuelto-ok";
+  // Resetear modo consumidor final
+  esConsumidorFinal = false;
+  document.getElementById("cliente").readOnly = false;
+  document.getElementById("cedula").readOnly  = false;
+  document.getElementById("btnConsumidorFinal").classList.remove("activo-cf");
+  document.getElementById("btnConsumidorFinal").textContent = "👤 Consumidor Final";
+
+  document.getElementById("vueltoTxt").textContent       = "Vuelto: $0.00";
+  document.getElementById("vueltoTxt").className         = "vuelto-ok";
   document.getElementById("descuentoPreview").textContent = "";
-  document.getElementById("lista").innerHTML = "";
-  document.getElementById("buscar").value    = "";
+  document.getElementById("lista").innerHTML  = "";
+  document.getElementById("buscar").value     = "";
   document.getElementById("bancoPicker").value = "";
   document.getElementById("infoGuayaquil").style.display = "none";
   document.getElementById("infoPichincha").style.display = "none";
   setTipo("efectivo");
 }
 </script>
-
 </body>
 </html>
